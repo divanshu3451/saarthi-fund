@@ -1,0 +1,74 @@
+<div class="loans-page">
+  <h1>Loans</h1>
+  
+  <section class="request-loan">
+    <h2>Request New Loan</h2>
+    <div class="eligibility-card">
+      <div class="eligibility-info">
+        <span class="label">Max Eligible:</span>
+        <span class="value">{{ eligibility()?.maxEligible | currency:'INR' }}</span>
+      </div>
+      <div class="eligibility-info">
+        <span class="label">Active Loans:</span>
+        <span class="value">{{ eligibility()?.activeLoans }} / {{ eligibility()?.maxActiveLoans }}</span>
+      </div>
+    </div>
+    
+    @if (eligibility()?.eligible) {
+      <form (ngSubmit)="requestLoan()" class="loan-form">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Loan Amount (₹)</label>
+            <input type="number" [(ngModel)]="loanAmount" name="amount" [max]="eligibility()?.maxEligible || 0" min="1" required />
+          </div>
+          <div class="form-group">
+            <label>EMI Start Date (optional)</label>
+            <input type="date" [(ngModel)]="emiStartDate" name="emi_start_date" />
+          </div>
+        </div>
+        <button type="submit" class="btn-primary" [disabled]="loading()">
+          {{ loading() ? 'Requesting...' : 'Request Loan' }}
+        </button>
+      </form>
+    } @else {
+      <p class="not-eligible">{{ eligibility()?.reason || 'You are not eligible for a loan at this time.' }}</p>
+    }
+    
+    @if (error()) {
+      <div class="error-message">{{ error() }}</div>
+    }
+    @if (success()) {
+      <div class="success-message">{{ success() }}</div>
+    }
+  </section>
+  
+  <section class="loans-list">
+    <h2>My Loans</h2>
+    <div class="loans-grid">
+      @for (loan of loans(); track loan.id) {
+        <a [routerLink]="['/loans', loan.id]" class="loan-card" [class.active]="loan.status === 'active'" [class.completed]="loan.status === 'completed'">
+          <div class="loan-header">
+            <span class="loan-amount">{{ loan.principal_amount | currency:'INR' }}</span>
+            <span class="loan-status" [class]="loan.status">{{ loan.status }}</span>
+          </div>
+          @if (auth.isAdmin() && loan.users_loans_user_idTousers) {
+            <div class="loan-member">{{ loan.users_loans_user_idTousers.name }}</div>
+          }
+          <div class="loan-details">
+            <div><span>Rate:</span> {{ loan.interest_rate }}%</div>
+            <div><span>Multiplier:</span> {{ loan.multiplier_at_disbursement }}x</div>
+            <div><span>Disbursed:</span> {{ loan.disbursed_at | date:'mediumDate' }}</div>
+            <div><span>Outstanding:</span> {{ loan.outstanding_principal | currency:'INR' }}</div>
+          </div>
+          @if (loan.emi_start_date) {
+            <div class="emi-info">EMI started: {{ loan.emi_start_date | date:'mediumDate' }}</div>
+          } @else {
+            <div class="emi-info pending">EMI not started</div>
+          }
+        </a>
+      } @empty {
+        <p class="empty">No loans found</p>
+      }
+    </div>
+  </section>
+</div>

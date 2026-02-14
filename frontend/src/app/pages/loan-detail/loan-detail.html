@@ -1,0 +1,139 @@
+<div class="loan-detail">
+  @if (loan()) {
+    <div class="loan-header">
+      <h1>Loan Details</h1>
+      <span class="loan-status" [class]="loan()!.status">{{ loan()!.status }}</span>
+    </div>
+    
+    <section class="loan-info">
+      <div class="info-grid">
+        <div class="info-card">
+          <span class="label">Principal Amount</span>
+          <span class="value">{{ loan()!.principal_amount | currency:'INR' }}</span>
+        </div>
+        <div class="info-card">
+          <span class="label">Interest Rate</span>
+          <span class="value">{{ loan()!.interest_rate }}%</span>
+        </div>
+        <div class="info-card">
+          <span class="label">Multiplier</span>
+          <span class="value">{{ loan()!.multiplier_at_disbursement }}x</span>
+        </div>
+        <div class="info-card">
+          <span class="label">Outstanding</span>
+          <span class="value">{{ loan()!.outstanding_principal | currency:'INR' }}</span>
+        </div>
+        <div class="info-card">
+          <span class="label">Disbursed On</span>
+          <span class="value">{{ loan()!.disbursed_at | date:'mediumDate' }}</span>
+        </div>
+        <div class="info-card">
+          <span class="label">Maturity Date</span>
+          <span class="value">{{ loan()!.maturity_date | date:'mediumDate' }}</span>
+        </div>
+      </div>
+    </section>
+    
+    @if (!loan()!.emi_start_date && loan()!.status === 'active') {
+      <section class="start-emi">
+        <h2>Start EMI</h2>
+        <form (ngSubmit)="startEmi()" class="emi-form">
+          <div class="form-row">
+            <div class="form-group">
+              <label>EMI Start Date</label>
+              <input type="date" [(ngModel)]="emiStartDate" name="emi_start_date" required />
+            </div>
+            <div class="form-group">
+              <label>Number of EMIs</label>
+              <input type="number" [(ngModel)]="emiMonths" name="emi_months" min="1" max="36" required />
+            </div>
+          </div>
+          <button type="submit" class="btn-primary" [disabled]="loading()">
+            {{ loading() ? 'Starting...' : 'Start EMI' }}
+          </button>
+        </form>
+        @if (error()) {
+          <div class="error-message">{{ error() }}</div>
+        }
+      </section>
+    }
+    
+    @if (loan()!.pre_emi_interest?.length) {
+      <section class="pre-emi-section">
+        <h2>Pre-EMI Interest</h2>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Period</th>
+                <th>Days</th>
+                <th>Amount</th>
+                <th>Due Date</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (pei of loan()!.pre_emi_interest; track pei.id) {
+                <tr>
+                  <td>{{ pei.period_start | date:'shortDate' }} - {{ pei.period_end | date:'shortDate' }}</td>
+                  <td>{{ pei.days_count }} days</td>
+                  <td>{{ pei.interest_amount | currency:'INR' }}</td>
+                  <td>{{ pei.due_date | date:'mediumDate' }}</td>
+                  <td>
+                    @if (pei.is_paid) {
+                      <span class="badge paid">Paid</span>
+                    } @else {
+                      <span class="badge pending">Pending</span>
+                    }
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </section>
+    }
+    
+    @if (loan()!.emi_schedule?.length) {
+      <section class="emi-section">
+        <h2>EMI Schedule</h2>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>EMI #</th>
+                <th>Due Date</th>
+                <th>Principal</th>
+                <th>Interest</th>
+                <th>Total EMI</th>
+                <th>Outstanding After</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (emi of loan()!.emi_schedule; track emi.id) {
+                <tr>
+                  <td>{{ emi.emi_number }}</td>
+                  <td>{{ emi.due_date | date:'mediumDate' }}</td>
+                  <td>{{ emi.principal_component | currency:'INR' }}</td>
+                  <td>{{ emi.interest_component | currency:'INR' }}</td>
+                  <td>{{ emi.total_emi | currency:'INR' }}</td>
+                  <td>{{ emi.outstanding_after | currency:'INR' }}</td>
+                  <td>
+                    @if (emi.is_paid) {
+                      <span class="badge paid">Paid</span>
+                    } @else {
+                      <span class="badge pending">Pending</span>
+                    }
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </section>
+    }
+  } @else {
+    <p>Loading...</p>
+  }
+</div>

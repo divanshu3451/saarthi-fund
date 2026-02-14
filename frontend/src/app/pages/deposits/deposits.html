@@ -1,0 +1,79 @@
+<div class="deposits-page">
+  <h1>Deposits</h1>
+  
+  @if (auth.isAdmin()) {
+    <section class="add-deposit">
+      <h2>Record New Deposit</h2>
+      <form (ngSubmit)="onSubmit()" class="deposit-form">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Member</label>
+            <select [(ngModel)]="newDeposit.user_id" name="user_id" required>
+              <option value="">Select Member</option>
+              @for (member of members(); track member.id) {
+                <option [value]="member.id">{{ member.name }} ({{ member.email }})</option>
+              }
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Amount (₹)</label>
+            <input type="number" [(ngModel)]="newDeposit.amount" name="amount" step="300" min="300" required />
+          </div>
+          <div class="form-group">
+            <label>Member Month</label>
+            <input type="number" [(ngModel)]="newDeposit.member_month" name="member_month" min="1" required />
+          </div>
+          <div class="form-group">
+            <label>Date</label>
+            <input type="date" [(ngModel)]="newDeposit.deposit_date" name="deposit_date" required />
+          </div>
+        </div>
+        <button type="submit" class="btn-primary" [disabled]="loading()">
+          {{ loading() ? 'Recording...' : 'Record Deposit' }}
+        </button>
+      </form>
+      @if (error()) {
+        <div class="error-message">{{ error() }}</div>
+      }
+      @if (success()) {
+        <div class="success-message">{{ success() }}</div>
+      }
+    </section>
+  }
+  
+  <section class="deposits-list">
+    <h2>Deposit History</h2>
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            @if (auth.isAdmin()) {
+              <th>Member</th>
+            }
+            <th>Amount</th>
+            <th>Month</th>
+            <th>Date</th>
+            <th>Cumulative Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (deposit of deposits(); track deposit.id) {
+            <tr>
+              @if (auth.isAdmin()) {
+                <td>{{ deposit.users_deposits_user_idTousers?.name }}</td>
+              }
+              <td>{{ deposit.amount | currency:'INR' }}</td>
+              <td>Month {{ deposit.member_month }}</td>
+              <td>{{ deposit.deposit_date | date:'mediumDate' }}</td>
+              <td>{{ deposit.cumulative_total | currency:'INR' }}</td>
+            </tr>
+          } @empty {
+            <tr>
+              <td [attr.colspan]="auth.isAdmin() ? 5 : 4" class="empty">No deposits found</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </section>
+</div>

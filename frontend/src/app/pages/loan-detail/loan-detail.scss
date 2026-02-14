@@ -1,0 +1,161 @@
+.loan-detail {
+  max-width: 1000px;
+}
+
+.loan-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+h1 {
+  color: #333;
+  margin: 0;
+}
+
+h2 {
+  color: #444;
+  margin-bottom: 1rem;
+}
+
+section {
+  margin-bottom: 2rem;
+}
+
+.loan-status {
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-weight: 600;
+  text-transform: uppercase;
+
+  &.active {
+    background: #e0e7ff;
+    color: #4338ca;
+  }
+
+  &.completed {
+    background: #dcfce7;
+    color: #166534;
+  }
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+}
+
+.info-card {
+  background: white;
+  padding: 1.25rem;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+
+  .label {
+    color: #666;
+    font-size: 0.875rem;
+  }
+
+  .value {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #333;
+  }
+}
+
+.emi-form {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+label {
+  font-weight: 500;
+  color: #333;
+}
+
+input {
+  padding: 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 1rem;
+}
+
+.btn-primary {
+  padding: 0.75rem 1.5rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.table-container {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 600px;
+}
+
+th,
+td {
+  padding: 1rem;
+  text-align: left;
+  border-bottom: 1px solid #eee;
+}
+
+th {
+  background: #f8f9fa;
+  font-weight: 600;
+  color: #333;
+}
+
+.badge {
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+
+  &.paid {
+    background: #dcfce7;
+    color: #166534;
+  }
+
+  &.pending {
+    background: #fef3c7;
+    color: #92400e;
+  }
+}
+
+.error-message {
+  background: #fee;
+  color: #c00;
+  padding: 0.75rem;
+  border-radius: 6px;
+  margin-top: 1rem;
+}

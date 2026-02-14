@@ -1,0 +1,21 @@
+<nav class="navbar">
+  <div class="navbar-brand">
+    <a routerLink="/dashboard" class="logo">💰 Saarthi Fund</a>
+  </div>
+  
+  @if (auth.isLoggedIn()) {
+    <div class="navbar-menu">
+      <a routerLink="/dashboard" routerLinkActive="active">Dashboard</a>
+      <a routerLink="/deposits" routerLinkActive="active">Deposits</a>
+      <a routerLink="/loans" routerLinkActive="active">Loans</a>
+      @if (auth.isAdmin()) {
+        <a routerLink="/admin" routerLinkActive="active">Admin</a>
+      }
+    </div>
+    
+    <div class="navbar-end">
+      <span class="user-name">{{ auth.user()?.name }}</span>
+      <button class="btn-logout" (click)="auth.logout()">Logout</button>
+    </div>
+  }
+</nav>
