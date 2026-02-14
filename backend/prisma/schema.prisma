@@ -1,0 +1,187 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model deposits {
+  id                                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id                           String    @db.Uuid
+  amount                            Decimal   @db.Decimal(12, 2)
+  member_month                      Int
+  deposit_date                      DateTime  @db.Date
+  cumulative_total                  Decimal   @db.Decimal(12, 2)
+  notes                             String?
+  recorded_by                       String?   @db.Uuid
+  created_at                        DateTime? @default(now()) @db.Timestamp(6)
+  users_deposits_recorded_byTousers users?    @relation("deposits_recorded_byTousers", fields: [recorded_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users_deposits_user_idTousers     users     @relation("deposits_user_idTousers", fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([user_id, member_month], map: "idx_deposits_member_month")
+  @@index([user_id], map: "idx_deposits_user_id")
+}
+
+model emi_schedule {
+  id                  String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  loan_id             String     @db.Uuid
+  emi_number          Int
+  due_date            DateTime   @db.Date
+  principal_component Decimal    @db.Decimal(12, 2)
+  interest_component  Decimal    @db.Decimal(12, 2)
+  total_emi           Decimal    @db.Decimal(12, 2)
+  outstanding_after   Decimal    @db.Decimal(12, 2)
+  is_paid             Boolean?   @default(false)
+  paid_amount         Decimal?   @db.Decimal(12, 2)
+  paid_at             DateTime?  @db.Date
+  created_at          DateTime?  @default(now()) @db.Timestamp(6)
+  loans               loans      @relation(fields: [loan_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  payments            payments[]
+
+  @@unique([loan_id, emi_number])
+  @@index([due_date], map: "idx_emi_schedule_due_date")
+  @@index([loan_id], map: "idx_emi_schedule_loan_id")
+}
+
+model fund_settings {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  setting_key   String    @unique @db.VarChar(50)
+  setting_value String    @db.VarChar(255)
+  description   String?
+  updated_at    DateTime? @default(now()) @db.Timestamp(6)
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model interest_brackets {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  min_multiplier Decimal   @db.Decimal(4, 2)
+  max_multiplier Decimal?  @db.Decimal(4, 2)
+  interest_rate  Decimal   @db.Decimal(4, 2)
+  is_active      Boolean?  @default(true)
+  created_at     DateTime? @default(now()) @db.Timestamp(6)
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model loans {
+  id                             String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id                        String             @db.Uuid
+  principal_amount               Decimal            @db.Decimal(12, 2)
+  interest_rate                  Decimal            @db.Decimal(4, 2)
+  multiplier_at_disbursement     Decimal            @db.Decimal(6, 2)
+  user_total_deposits_at_loan    Decimal            @db.Decimal(12, 2)
+  total_pool_at_loan             Decimal            @db.Decimal(12, 2)
+  max_eligible_at_loan           Decimal            @db.Decimal(12, 2)
+  disbursed_at                   DateTime           @db.Date
+  emi_start_date                 DateTime?          @db.Date
+  maturity_date                  DateTime           @db.Date
+  pre_emi_interest_amount        Decimal?           @default(0) @db.Decimal(12, 2)
+  outstanding_principal          Decimal            @db.Decimal(12, 2)
+  total_interest_paid            Decimal?           @default(0) @db.Decimal(12, 2)
+  status                         loan_status?       @default(active)
+  completed_at                   DateTime?          @db.Timestamp(6)
+  approved_by                    String?            @db.Uuid
+  created_at                     DateTime?          @default(now()) @db.Timestamp(6)
+  updated_at                     DateTime?          @default(now()) @db.Timestamp(6)
+  emi_schedule                   emi_schedule[]
+  users_loans_approved_byTousers users?             @relation("loans_approved_byTousers", fields: [approved_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users_loans_user_idTousers     users              @relation("loans_user_idTousers", fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  payments                       payments[]
+  pre_emi_interest               pre_emi_interest[]
+
+  @@index([status], map: "idx_loans_status")
+  @@index([user_id], map: "idx_loans_user_id")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model payments {
+  id                                String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  loan_id                           String            @db.Uuid
+  user_id                           String            @db.Uuid
+  amount                            Decimal           @db.Decimal(12, 2)
+  principal_component               Decimal?          @default(0) @db.Decimal(12, 2)
+  interest_component                Decimal?          @default(0) @db.Decimal(12, 2)
+  payment_type                      String            @db.VarChar(20)
+  payment_date                      DateTime          @db.Date
+  pre_emi_interest_id               String?           @db.Uuid
+  emi_schedule_id                   String?           @db.Uuid
+  notes                             String?
+  recorded_by                       String?           @db.Uuid
+  created_at                        DateTime?         @default(now()) @db.Timestamp(6)
+  emi_schedule                      emi_schedule?     @relation(fields: [emi_schedule_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  loans                             loans             @relation(fields: [loan_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  pre_emi_interest                  pre_emi_interest? @relation(fields: [pre_emi_interest_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users_payments_recorded_byTousers users?            @relation("payments_recorded_byTousers", fields: [recorded_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users_payments_user_idTousers     users             @relation("payments_user_idTousers", fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([loan_id], map: "idx_payments_loan_id")
+  @@index([user_id], map: "idx_payments_user_id")
+}
+
+model pre_emi_interest {
+  id               String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  loan_id          String     @db.Uuid
+  period_start     DateTime   @db.Date
+  period_end       DateTime   @db.Date
+  days_count       Int
+  principal_amount Decimal    @db.Decimal(12, 2)
+  interest_rate    Decimal    @db.Decimal(4, 2)
+  interest_amount  Decimal    @db.Decimal(12, 2)
+  due_date         DateTime   @db.Date
+  is_paid          Boolean?   @default(false)
+  paid_amount      Decimal?   @db.Decimal(12, 2)
+  paid_at          DateTime?  @db.Date
+  created_at       DateTime?  @default(now()) @db.Timestamp(6)
+  payments         payments[]
+  loans            loans      @relation(fields: [loan_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([due_date], map: "idx_pre_emi_interest_due_date")
+  @@index([loan_id], map: "idx_pre_emi_interest_loan_id")
+}
+
+model users {
+  id                                   String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name                                 String       @db.VarChar(100)
+  email                                String       @unique @db.VarChar(255)
+  phone                                String?      @db.VarChar(15)
+  password_hash                        String       @db.VarChar(255)
+  role                                 user_role?   @default(member)
+  status                               user_status? @default(pending)
+  joined_at                            DateTime?    @db.Date
+  approved_by                          String?      @db.Uuid
+  approved_at                          DateTime?    @db.Timestamp(6)
+  rejection_reason                     String?
+  created_at                           DateTime?    @default(now()) @db.Timestamp(6)
+  updated_at                           DateTime?    @default(now()) @db.Timestamp(6)
+  deposits_deposits_recorded_byTousers deposits[]   @relation("deposits_recorded_byTousers")
+  deposits_deposits_user_idTousers     deposits[]   @relation("deposits_user_idTousers")
+  loans_loans_approved_byTousers       loans[]      @relation("loans_approved_byTousers")
+  loans_loans_user_idTousers           loans[]      @relation("loans_user_idTousers")
+  payments_payments_recorded_byTousers payments[]   @relation("payments_recorded_byTousers")
+  payments_payments_user_idTousers     payments[]   @relation("payments_user_idTousers")
+  users                                users?       @relation("usersTousers", fields: [approved_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  other_users                          users[]      @relation("usersTousers")
+
+  @@index([role], map: "idx_users_role")
+  @@index([status], map: "idx_users_status")
+}
+
+enum loan_status {
+  active
+  completed
+  defaulted
+}
+
+enum user_role {
+  admin
+  member
+}
+
+enum user_status {
+  pending
+  active
+  inactive
+  rejected
+}
