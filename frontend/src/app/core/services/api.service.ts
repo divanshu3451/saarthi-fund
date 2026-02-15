@@ -116,6 +116,10 @@ export class ApiService {
     return this.http.post<Deposit>(`${this.apiUrl}/deposits`, data);
   }
 
+  recalculateDeposits(userId: string) {
+    return this.http.post<{ message: string; updated: number; finalTotal: number }>(`${this.apiUrl}/deposits/recalculate/${userId}`, {});
+  }
+
   // Loans
   getLoans() {
     return this.http.get<Loan[]>(`${this.apiUrl}/loans`);

@@ -1,4 +1,4 @@
-import { Component, inject, signal, OnInit } from '@angular/core';
+import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { CurrencyPipe, DatePipe } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
@@ -10,8 +10,17 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatTableModule } from '@angular/material/table';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatExpansionModule } from '@angular/material/expansion';
 import { AuthService } from '../../core/services/auth.service';
 import { ApiService, Deposit } from '../../core/services/api.service';
+
+interface GroupedDeposits {
+  userId: string;
+  userName: string;
+  deposits: Deposit[];
+  totalDeposits: number;
+  latestCumulative: number;
+}
 
 @Component({
   selector: 'app-deposits',
@@ -19,7 +28,7 @@ import { ApiService, Deposit } from '../../core/services/api.service';
   imports: [
     FormsModule, CurrencyPipe, DatePipe, MatCardModule, MatFormFieldModule,
     MatInputModule, MatSelectModule, MatButtonModule, MatIconModule,
-    MatTableModule, MatProgressSpinnerModule, MatSnackBarModule
+    MatTableModule, MatProgressSpinnerModule, MatSnackBarModule, MatExpansionModule
   ],
   templateUrl: './deposits.html',
   styleUrl: './deposits.scss'
@@ -34,7 +43,6 @@ export class DepositsComponent implements OnInit {
   loading = signal(false);
 
   displayedColumns = ['amount', 'member_month', 'deposit_date', 'cumulative_total'];
-  adminColumns = ['member', 'amount', 'member_month', 'deposit_date', 'cumulative_total'];
 
   newDeposit = {
     user_id: '',
@@ -42,6 +50,42 @@ export class DepositsComponent implements OnInit {
     member_month: 1,
     deposit_date: new Date().toISOString().split('T')[0]
   };
+
+  // Computed signal to group deposits by user
+  groupedDeposits = computed<GroupedDeposits[]>(() => {
+    const deps = this.deposits();
+    const grouped = new Map<string, GroupedDeposits>();
+
+    for (const dep of deps) {
+      const userId = dep.user_id;
+      const userName = (dep as any).users_deposits_user_idTousers?.name || 'Unknown';
+
+      if (!grouped.has(userId)) {
+        grouped.set(userId, {
+          userId,
+          userName,
+          deposits: [],
+          totalDeposits: 0,
+          latestCumulative: 0
+        });
+      }
+
+      const group = grouped.get(userId)!;
+      group.deposits.push(dep);
+      group.totalDeposits += Number(dep.amount);
+    }
+
+    // Sort deposits within each group by member_month desc and set latest cumulative
+    for (const group of grouped.values()) {
+      group.deposits.sort((a, b) => b.member_month - a.member_month);
+      if (group.deposits.length > 0) {
+        group.latestCumulative = Number(group.deposits[0].cumulative_total);
+      }
+    }
+
+    // Sort groups by user name
+    return Array.from(grouped.values()).sort((a, b) => a.userName.localeCompare(b.userName));
+  });
 
   ngOnInit() {
     this.loadDeposits();

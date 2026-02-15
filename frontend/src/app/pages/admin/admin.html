@@ -330,6 +330,10 @@
                     <mat-icon>clear_all</mat-icon>
                     Clear All
                   </button>
+                  <button mat-stroked-button color="accent" (click)="recalculateTotals()" [disabled]="!selectedUserId" matTooltip="Recalculate cumulative totals for selected member">
+                    <mat-icon>calculate</mat-icon>
+                    Recalculate Totals
+                  </button>
                 </div>
               </div>
               

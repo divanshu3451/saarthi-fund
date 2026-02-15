@@ -13,7 +13,8 @@ import { MatChipsModule } from '@angular/material/chips';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { MatDialogModule } from '@angular/material/dialog';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { AuthService, User } from '../../core/services/auth.service';
 import { ApiService, InterestBracket, FundSetting } from '../../core/services/api.service';
 
@@ -31,7 +32,7 @@ interface BulkDepositRow {
     FormsModule, DatePipe, CurrencyPipe, MatCardModule, MatTabsModule, MatFormFieldModule,
     MatInputModule, MatSelectModule, MatButtonModule, MatIconModule, MatTableModule,
     MatChipsModule, MatCheckboxModule, MatProgressSpinnerModule,
-    MatSnackBarModule, MatDialogModule
+    MatSnackBarModule, MatDialogModule, MatTooltipModule
   ],
   templateUrl: './admin.html',
   styleUrl: './admin.scss'
@@ -212,6 +213,22 @@ export class AdminComponent implements OnInit {
       error: (err) => {
         this.snackBar.open(err.error?.error || 'Failed to import deposits', 'Close', { duration: 5000 });
         this.bulkLoading.set(false);
+      }
+    });
+  }
+
+  recalculateTotals() {
+    if (!this.selectedUserId) {
+      this.snackBar.open('Please select a member first', 'Close', { duration: 3000 });
+      return;
+    }
+
+    this.api.recalculateDeposits(this.selectedUserId).subscribe({
+      next: (result) => {
+        this.snackBar.open(result.message, 'Close', { duration: 5000 });
+      },
+      error: (err) => {
+        this.snackBar.open(err.error?.error || 'Failed to recalculate', 'Close', { duration: 5000 });
       }
     });
   }

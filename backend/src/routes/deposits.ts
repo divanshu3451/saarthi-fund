@@ -23,7 +23,7 @@ router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
       include: {
         users_deposits_user_idTousers: { select: { name: true, email: true } }
       },
-      orderBy: { deposit_date: 'desc' }
+      orderBy: { member_month: 'desc' }
     });
     res.json(deposits);
   } catch (error) {
@@ -214,6 +214,57 @@ router.get('/pool', authenticate, async (_req: AuthRequest, res: Response) => {
     res.json({ total_pool: total._sum.amount || 0 });
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch pool total' });
+  }
+});
+
+/**
+ * @swagger
+ * /api/deposits/recalculate/{userId}:
+ *   post:
+ *     summary: Recalculate cumulative totals for a user (Admin only)
+ *     tags: [Deposits]
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *     responses:
+ *       200: { description: Cumulative totals recalculated }
+ *       403: { description: Admin access required }
+ */
+router.post('/recalculate/:userId', authenticate, requireAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.params.userId as string;
+
+    // Get all deposits for user sorted by member_month
+    const deposits = await prisma.deposits.findMany({
+      where: { user_id: userId },
+      orderBy: { member_month: 'asc' }
+    });
+
+    if (deposits.length === 0) {
+      return res.json({ message: 'No deposits found for user', updated: 0 });
+    }
+
+    // Recalculate cumulative totals
+    let runningTotal = 0;
+    for (const deposit of deposits) {
+      runningTotal += Number(deposit.amount);
+      await prisma.deposits.update({
+        where: { id: deposit.id },
+        data: { cumulative_total: runningTotal }
+      });
+    }
+
+    res.json({ 
+      message: `Recalculated cumulative totals for ${deposits.length} deposits`,
+      updated: deposits.length,
+      finalTotal: runningTotal
+    });
+  } catch (error) {
+    console.error('Recalculate error:', error);
+    res.status(500).json({ error: 'Failed to recalculate totals' });
   }
 });
 
