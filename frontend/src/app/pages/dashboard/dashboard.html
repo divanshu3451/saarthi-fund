@@ -2,97 +2,221 @@
   <h1>Welcome, {{ auth.user()?.name }}!</h1>
   
   @if (auth.isAdmin()) {
-    <section class="admin-stats">
-      <h2>Fund Overview</h2>
+    <section>
+      <h2>
+        <mat-icon>analytics</mat-icon>
+        Fund Overview
+      </h2>
       <div class="stats-grid">
-        <div class="stat-card">
-          <span class="stat-label">Total Pool</span>
-          <span class="stat-value">{{ adminStats()?.total_pool | currency:'INR' }}</span>
-        </div>
-        <div class="stat-card">
-          <span class="stat-label">Total Loaned</span>
-          <span class="stat-value">{{ adminStats()?.total_loaned | currency:'INR' }}</span>
-        </div>
-        <div class="stat-card">
-          <span class="stat-label">Available Balance</span>
-          <span class="stat-value">{{ adminStats()?.available_balance | currency:'INR' }}</span>
-        </div>
-        <div class="stat-card">
-          <span class="stat-label">Active Loans</span>
-          <span class="stat-value">{{ adminStats()?.active_loans }}</span>
-        </div>
-        <div class="stat-card">
-          <span class="stat-label">Pending Payments</span>
-          <span class="stat-value">{{ adminStats()?.pending_payments }}</span>
-        </div>
-        <div class="stat-card">
-          <span class="stat-label">Active Members</span>
-          <span class="stat-value">{{ adminStats()?.members?.['active'] || 0 }}</span>
-        </div>
+        <mat-card>
+          <mat-card-content>
+            <div class="stat-icon primary">
+              <mat-icon>account_balance_wallet</mat-icon>
+            </div>
+            <div class="stat-info">
+              <span class="stat-label">Total Pool</span>
+              <span class="stat-value">{{ adminStats()?.total_pool | currency:'INR' }}</span>
+            </div>
+          </mat-card-content>
+        </mat-card>
+        
+        <mat-card>
+          <mat-card-content>
+            <div class="stat-icon accent">
+              <mat-icon>trending_up</mat-icon>
+            </div>
+            <div class="stat-info">
+              <span class="stat-label">Total Loaned</span>
+              <span class="stat-value">{{ adminStats()?.total_loaned | currency:'INR' }}</span>
+            </div>
+          </mat-card-content>
+        </mat-card>
+        
+        <mat-card>
+          <mat-card-content>
+            <div class="stat-icon success">
+              <mat-icon>account_balance</mat-icon>
+            </div>
+            <div class="stat-info">
+              <span class="stat-label">Available Balance</span>
+              <span class="stat-value">{{ adminStats()?.available_balance | currency:'INR' }}</span>
+            </div>
+          </mat-card-content>
+        </mat-card>
+        
+        <mat-card>
+          <mat-card-content>
+            <div class="stat-icon warn">
+              <mat-icon>receipt_long</mat-icon>
+            </div>
+            <div class="stat-info">
+              <span class="stat-label">Active Loans</span>
+              <span class="stat-value">{{ adminStats()?.active_loans }}</span>
+            </div>
+          </mat-card-content>
+        </mat-card>
+        
+        <mat-card>
+          <mat-card-content>
+            <div class="stat-icon">
+              <mat-icon>pending_actions</mat-icon>
+            </div>
+            <div class="stat-info">
+              <span class="stat-label">Pending Payments</span>
+              <span class="stat-value">{{ adminStats()?.pending_payments }}</span>
+            </div>
+          </mat-card-content>
+        </mat-card>
+        
+        <mat-card>
+          <mat-card-content>
+            <div class="stat-icon primary">
+              <mat-icon>group</mat-icon>
+            </div>
+            <div class="stat-info">
+              <span class="stat-label">Active Members</span>
+              <span class="stat-value">{{ adminStats()?.members?.['active'] || 0 }}</span>
+            </div>
+          </mat-card-content>
+        </mat-card>
       </div>
     </section>
   }
   
-  <section class="my-summary">
-    <h2>My Summary</h2>
+  <section>
+    <h2>
+      <mat-icon>person</mat-icon>
+      My Summary
+    </h2>
     <div class="stats-grid">
-      <div class="stat-card">
-        <span class="stat-label">My Total Deposits</span>
-        <span class="stat-value">{{ depositSummary()?.total_deposits | currency:'INR' }}</span>
-      </div>
-      <div class="stat-card">
-        <span class="stat-label">Current Month</span>
-        <span class="stat-value">Month {{ depositSummary()?.current_month || 0 }}</span>
-      </div>
-      <div class="stat-card">
-        <span class="stat-label">Member Since</span>
-        <span class="stat-value">{{ depositSummary()?.joined_at | date:'mediumDate' }}</span>
-      </div>
+      <mat-card>
+        <mat-card-content>
+          <div class="stat-icon primary">
+            <mat-icon>savings</mat-icon>
+          </div>
+          <div class="stat-info">
+            <span class="stat-label">My Total Deposits</span>
+            <span class="stat-value">{{ depositSummary()?.total_deposits | currency:'INR' }}</span>
+          </div>
+        </mat-card-content>
+      </mat-card>
+      
+      <mat-card>
+        <mat-card-content>
+          <div class="stat-icon accent">
+            <mat-icon>calendar_month</mat-icon>
+          </div>
+          <div class="stat-info">
+            <span class="stat-label">Current Month</span>
+            <span class="stat-value">Month {{ depositSummary()?.current_month || 0 }}</span>
+          </div>
+        </mat-card-content>
+      </mat-card>
+      
+      <mat-card>
+        <mat-card-content>
+          <div class="stat-icon success">
+            <mat-icon>event</mat-icon>
+          </div>
+          <div class="stat-info">
+            <span class="stat-label">Member Since</span>
+            <span class="stat-value">{{ depositSummary()?.joined_at | date:'mediumDate' }}</span>
+          </div>
+        </mat-card-content>
+      </mat-card>
     </div>
   </section>
   
-  <section class="eligibility">
-    <h2>Loan Eligibility</h2>
+  <section>
+    <h2>
+      <mat-icon>verified</mat-icon>
+      Loan Eligibility
+    </h2>
     <div class="stats-grid">
-      <div class="stat-card" [class.eligible]="eligibility()?.eligible" [class.not-eligible]="!eligibility()?.eligible">
-        <span class="stat-label">Status</span>
-        <span class="stat-value">{{ eligibility()?.eligible ? 'Eligible' : 'Not Eligible' }}</span>
-      </div>
-      <div class="stat-card">
-        <span class="stat-label">Max Eligible Amount</span>
-        <span class="stat-value">{{ eligibility()?.maxEligible | currency:'INR' }}</span>
-      </div>
-      <div class="stat-card">
-        <span class="stat-label">Active Loans</span>
-        <span class="stat-value">{{ eligibility()?.activeLoans }} / {{ eligibility()?.maxActiveLoans }}</span>
-      </div>
-      <div class="stat-card">
-        <span class="stat-label">Outstanding</span>
-        <span class="stat-value">{{ eligibility()?.outstanding | currency:'INR' }}</span>
-      </div>
+      <mat-card [class.eligible]="eligibility()?.eligible" [class.not-eligible]="!eligibility()?.eligible">
+        <mat-card-content>
+          <div class="stat-icon" [class.success]="eligibility()?.eligible" [class.warn]="!eligibility()?.eligible">
+            <mat-icon>{{ eligibility()?.eligible ? 'check_circle' : 'cancel' }}</mat-icon>
+          </div>
+          <div class="stat-info">
+            <span class="stat-label">Status</span>
+            <span class="stat-value">{{ eligibility()?.eligible ? 'Eligible' : 'Not Eligible' }}</span>
+          </div>
+        </mat-card-content>
+      </mat-card>
+      
+      <mat-card>
+        <mat-card-content>
+          <div class="stat-icon primary">
+            <mat-icon>payments</mat-icon>
+          </div>
+          <div class="stat-info">
+            <span class="stat-label">Max Eligible Amount</span>
+            <span class="stat-value">{{ eligibility()?.maxEligible | currency:'INR' }}</span>
+          </div>
+        </mat-card-content>
+      </mat-card>
+      
+      <mat-card>
+        <mat-card-content>
+          <div class="stat-icon accent">
+            <mat-icon>format_list_numbered</mat-icon>
+          </div>
+          <div class="stat-info">
+            <span class="stat-label">Active Loans</span>
+            <span class="stat-value">{{ eligibility()?.activeLoans }} / {{ eligibility()?.maxActiveLoans }}</span>
+          </div>
+        </mat-card-content>
+      </mat-card>
+      
+      <mat-card>
+        <mat-card-content>
+          <div class="stat-icon warn">
+            <mat-icon>money_off</mat-icon>
+          </div>
+          <div class="stat-info">
+            <span class="stat-label">Outstanding</span>
+            <span class="stat-value">{{ eligibility()?.outstanding | currency:'INR' }}</span>
+          </div>
+        </mat-card-content>
+      </mat-card>
     </div>
     
     @if (eligibility()?.eligible) {
-      <a routerLink="/loans" class="btn-primary">Request Loan</a>
+      <button mat-raised-button color="primary" routerLink="/loans">
+        <mat-icon>add</mat-icon>
+        Request Loan
+      </button>
     }
   </section>
   
-  <section class="quick-actions">
-    <h2>Quick Actions</h2>
+  <section>
+    <h2>
+      <mat-icon>flash_on</mat-icon>
+      Quick Actions
+    </h2>
     <div class="actions-grid">
-      <a routerLink="/deposits" class="action-card">
-        <span class="action-icon">💰</span>
-        <span class="action-label">View Deposits</span>
-      </a>
-      <a routerLink="/loans" class="action-card">
-        <span class="action-icon">📋</span>
-        <span class="action-label">View Loans</span>
-      </a>
+      <mat-card class="action-card" routerLink="/deposits">
+        <mat-card-content>
+          <mat-icon color="primary">savings</mat-icon>
+          <span>View Deposits</span>
+        </mat-card-content>
+      </mat-card>
+      
+      <mat-card class="action-card" routerLink="/loans">
+        <mat-card-content>
+          <mat-icon color="accent">request_quote</mat-icon>
+          <span>View Loans</span>
+        </mat-card-content>
+      </mat-card>
+      
       @if (auth.isAdmin()) {
-        <a routerLink="/admin" class="action-card">
-          <span class="action-icon">⚙️</span>
-          <span class="action-label">Admin Panel</span>
-        </a>
+        <mat-card class="action-card" routerLink="/admin">
+          <mat-card-content>
+            <mat-icon color="warn">admin_panel_settings</mat-icon>
+            <span>Admin Panel</span>
+          </mat-card-content>
+        </mat-card>
       }
     </div>
   </section>

@@ -1,79 +1,110 @@
 <div class="deposits-page">
-  <h1>Deposits</h1>
-  
+  <h2><mat-icon>savings</mat-icon> Deposits</h2>
+
   @if (auth.isAdmin()) {
-    <section class="add-deposit">
-      <h2>Record New Deposit</h2>
-      <form (ngSubmit)="onSubmit()" class="deposit-form">
-        <div class="form-row">
-          <div class="form-group">
-            <label>Member</label>
-            <select [(ngModel)]="newDeposit.user_id" name="user_id" required>
-              <option value="">Select Member</option>
-              @for (member of members(); track member.id) {
-                <option [value]="member.id">{{ member.name }} ({{ member.email }})</option>
+    <section>
+      <mat-card class="deposit-form-card">
+        <mat-card-header>
+          <mat-icon mat-card-avatar>add_circle</mat-icon>
+          <mat-card-title>Record New Deposit</mat-card-title>
+          <mat-card-subtitle>Add a deposit for a member</mat-card-subtitle>
+        </mat-card-header>
+        <mat-card-content>
+          <form (ngSubmit)="onSubmit()" class="form-row">
+            <mat-form-field appearance="outline">
+              <mat-label>Member</mat-label>
+              <mat-select [(ngModel)]="newDeposit.user_id" name="user_id" required>
+                @for (member of members(); track member.id) {
+                  <mat-option [value]="member.id">{{ member.name }}</mat-option>
+                }
+              </mat-select>
+              <mat-icon matPrefix>person</mat-icon>
+            </mat-form-field>
+            
+            <mat-form-field appearance="outline">
+              <mat-label>Amount (₹)</mat-label>
+              <input matInput type="number" [(ngModel)]="newDeposit.amount" name="amount" step="300" min="300" required />
+              <mat-icon matPrefix>currency_rupee</mat-icon>
+              <mat-hint>Minimum ₹300</mat-hint>
+            </mat-form-field>
+            
+            <mat-form-field appearance="outline">
+              <mat-label>Member Month</mat-label>
+              <input matInput type="number" [(ngModel)]="newDeposit.member_month" name="member_month" min="1" required />
+              <mat-icon matPrefix>calendar_month</mat-icon>
+            </mat-form-field>
+            
+            <mat-form-field appearance="outline">
+              <mat-label>Date</mat-label>
+              <input matInput type="date" [(ngModel)]="newDeposit.deposit_date" name="deposit_date" required />
+              <mat-icon matPrefix>event</mat-icon>
+            </mat-form-field>
+            
+            <button mat-raised-button color="primary" type="submit" [disabled]="loading()">
+              @if (loading()) {
+                <mat-spinner diameter="20"></mat-spinner>
+              } @else {
+                <ng-container>
+                  <!-- <mat-icon>save</mat-icon> -->
+                  Record Deposit
+                </ng-container>
               }
-            </select>
-          </div>
-          <div class="form-group">
-            <label>Amount (₹)</label>
-            <input type="number" [(ngModel)]="newDeposit.amount" name="amount" step="300" min="300" required />
-          </div>
-          <div class="form-group">
-            <label>Member Month</label>
-            <input type="number" [(ngModel)]="newDeposit.member_month" name="member_month" min="1" required />
-          </div>
-          <div class="form-group">
-            <label>Date</label>
-            <input type="date" [(ngModel)]="newDeposit.deposit_date" name="deposit_date" required />
-          </div>
-        </div>
-        <button type="submit" class="btn-primary" [disabled]="loading()">
-          {{ loading() ? 'Recording...' : 'Record Deposit' }}
-        </button>
-      </form>
-      @if (error()) {
-        <div class="error-message">{{ error() }}</div>
-      }
-      @if (success()) {
-        <div class="success-message">{{ success() }}</div>
-      }
+            </button>
+          </form>
+        </mat-card-content>
+      </mat-card>
     </section>
   }
-  
-  <section class="deposits-list">
-    <h2>Deposit History</h2>
-    <div class="table-container">
-      <table>
-        <thead>
-          <tr>
-            @if (auth.isAdmin()) {
-              <th>Member</th>
-            }
-            <th>Amount</th>
-            <th>Month</th>
-            <th>Date</th>
-            <th>Cumulative Total</th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (deposit of deposits(); track deposit.id) {
-            <tr>
+
+  <section>
+    <mat-card class="history-card">
+      <mat-card-header>
+        <mat-icon mat-card-avatar>history</mat-icon>
+        <mat-card-title>Deposit History</mat-card-title>
+        <mat-card-subtitle>{{ deposits().length }} deposits recorded</mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content>
+        @if (deposits().length) {
+          <div class="table-container">
+            <table mat-table [dataSource]="deposits()">
               @if (auth.isAdmin()) {
-                <td>{{ deposit.users_deposits_user_idTousers?.name }}</td>
+                <ng-container matColumnDef="member">
+                  <th mat-header-cell *matHeaderCellDef>Member</th>
+                  <td mat-cell *matCellDef="let deposit">{{ deposit.users_deposits_user_idTousers?.name }}</td>
+                </ng-container>
               }
-              <td>{{ deposit.amount | currency:'INR' }}</td>
-              <td>Month {{ deposit.member_month }}</td>
-              <td>{{ deposit.deposit_date | date:'mediumDate' }}</td>
-              <td>{{ deposit.cumulative_total | currency:'INR' }}</td>
-            </tr>
-          } @empty {
-            <tr>
-              <td [attr.colspan]="auth.isAdmin() ? 5 : 4" class="empty">No deposits found</td>
-            </tr>
-          }
-        </tbody>
-      </table>
-    </div>
+              
+              <ng-container matColumnDef="amount">
+                <th mat-header-cell *matHeaderCellDef>Amount</th>
+                <td mat-cell *matCellDef="let deposit" class="amount-cell">{{ deposit.amount | currency:'INR' }}</td>
+              </ng-container>
+              
+              <ng-container matColumnDef="member_month">
+                <th mat-header-cell *matHeaderCellDef>Month</th>
+                <td mat-cell *matCellDef="let deposit">Month {{ deposit.member_month }}</td>
+              </ng-container>
+              
+              <ng-container matColumnDef="deposit_date">
+                <th mat-header-cell *matHeaderCellDef>Date</th>
+                <td mat-cell *matCellDef="let deposit">{{ deposit.deposit_date | date:'mediumDate' }}</td>
+              </ng-container>
+              
+              <ng-container matColumnDef="cumulative_total">
+                <th mat-header-cell *matHeaderCellDef>Cumulative Total</th>
+                <td mat-cell *matCellDef="let deposit" class="cumulative-cell">{{ deposit.cumulative_total | currency:'INR' }}</td>
+              </ng-container>
+              
+              <tr mat-header-row *matHeaderRowDef="auth.isAdmin() ? adminColumns : displayedColumns"></tr>
+              <tr mat-row *matRowDef="let row; columns: auth.isAdmin() ? adminColumns : displayedColumns;"></tr>
+            </table>
+          </div>
+        } @else {
+          <div class="empty-state">
+            <mat-icon>savings</mat-icon>
+            <span>No deposits found</span>
+          </div>
+        }
+      </mat-card-content>
+    </mat-card>
   </section>
 </div>

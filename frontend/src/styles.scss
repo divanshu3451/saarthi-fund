@@ -1,3 +1,25 @@
+@use '@angular/material' as mat;
+
+// Include the common styles for Angular Material
+@include mat.core();
+
+// Define custom theme
+$primary: mat.m2-define-palette(mat.$m2-indigo-palette);
+$accent: mat.m2-define-palette(mat.$m2-pink-palette, A200, A100, A400);
+$warn: mat.m2-define-palette(mat.$m2-red-palette);
+
+$theme: mat.m2-define-light-theme((
+  color: (
+    primary: $primary,
+    accent: $accent,
+    warn: $warn,
+  ),
+  typography: mat.m2-define-typography-config(),
+  density: 0,
+));
+
+@include mat.all-component-themes($theme);
+
 * {
   margin: 0;
   padding: 0;
@@ -5,12 +27,29 @@
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-  background: #f5f7fa;
-  color: #333;
+  font-family: Roboto, 'Helvetica Neue', sans-serif;
+  background: #fafafa;
+  color: rgba(0, 0, 0, 0.87);
   line-height: 1.6;
 }
 
 html, body {
   height: 100%;
+}
+
+// Global Material overrides
+.mat-mdc-card {
+  margin-bottom: 16px;
+}
+
+.mat-mdc-form-field {
+  width: 100%;
+}
+
+.full-width {
+  width: 100%;
+}
+
+.spacer {
+  flex: 1 1 auto;
 }

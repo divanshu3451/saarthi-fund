@@ -1,21 +1,90 @@
-<nav class="navbar">
-  <div class="navbar-brand">
-    <a routerLink="/dashboard" class="logo">💰 Saarthi Fund</a>
-  </div>
+<mat-toolbar color="primary">
+  <a routerLink="/dashboard" class="logo">
+    <mat-icon>account_balance</mat-icon>
+    <span>Saarthi Fund</span>
+  </a>
+  
+  <span class="spacer"></span>
   
   @if (auth.isLoggedIn()) {
-    <div class="navbar-menu">
-      <a routerLink="/dashboard" routerLinkActive="active">Dashboard</a>
-      <a routerLink="/deposits" routerLinkActive="active">Deposits</a>
-      <a routerLink="/loans" routerLinkActive="active">Loans</a>
+    <!-- Desktop Navigation -->
+    <nav class="nav-links desktop-only">
+      <a mat-button routerLink="/dashboard" routerLinkActive="active">
+        <mat-icon>dashboard</mat-icon>
+        Dashboard
+      </a>
+      <a mat-button routerLink="/deposits" routerLinkActive="active">
+        <mat-icon>savings</mat-icon>
+        Deposits
+      </a>
+      <a mat-button routerLink="/loans" routerLinkActive="active">
+        <mat-icon>request_quote</mat-icon>
+        Loans
+      </a>
       @if (auth.isAdmin()) {
-        <a routerLink="/admin" routerLinkActive="active">Admin</a>
+        <a mat-button routerLink="/admin" routerLinkActive="active">
+          <mat-icon>admin_panel_settings</mat-icon>
+          Admin
+        </a>
       }
-    </div>
+    </nav>
     
-    <div class="navbar-end">
-      <span class="user-name">{{ auth.user()?.name }}</span>
-      <button class="btn-logout" (click)="auth.logout()">Logout</button>
-    </div>
+    <!-- Desktop User Menu -->
+    <button mat-icon-button [matMenuTriggerFor]="userMenu" class="desktop-only">
+      <mat-icon>account_circle</mat-icon>
+    </button>
+    <mat-menu #userMenu="matMenu">
+      <div class="user-info-menu">
+        <mat-icon>person</mat-icon>
+        <span>{{ auth.user()?.name }}</span>
+      </div>
+      <mat-divider></mat-divider>
+      <button mat-menu-item (click)="auth.logout()">
+        <mat-icon>logout</mat-icon>
+        <span>Logout</span>
+      </button>
+    </mat-menu>
+    
+    <!-- Mobile Hamburger Menu -->
+    <button mat-icon-button class="mobile-only" (click)="toggleMobileMenu()">
+      <mat-icon>menu</mat-icon>
+    </button>
   }
-</nav>
+</mat-toolbar>
+
+<!-- Mobile Sidenav -->
+@if (auth.isLoggedIn()) {
+  <div class="mobile-backdrop" [class.open]="mobileMenuOpen()" (click)="closeMobileMenu()"></div>
+  <div class="mobile-sidenav" [class.open]="mobileMenuOpen()">
+    <div class="sidenav-header">
+      <mat-icon>account_circle</mat-icon>
+      <span>{{ auth.user()?.name }}</span>
+    </div>
+    <mat-divider></mat-divider>
+    <nav class="sidenav-nav">
+      <a mat-button routerLink="/dashboard" routerLinkActive="active" (click)="closeMobileMenu()">
+        <mat-icon>dashboard</mat-icon>
+        Dashboard
+      </a>
+      <a mat-button routerLink="/deposits" routerLinkActive="active" (click)="closeMobileMenu()">
+        <mat-icon>savings</mat-icon>
+        Deposits
+      </a>
+      <a mat-button routerLink="/loans" routerLinkActive="active" (click)="closeMobileMenu()">
+        <mat-icon>request_quote</mat-icon>
+        Loans
+      </a>
+      @if (auth.isAdmin()) {
+        <a mat-button routerLink="/admin" routerLinkActive="active" (click)="closeMobileMenu()">
+          <mat-icon>admin_panel_settings</mat-icon>
+          Admin
+        </a>
+      }
+    </nav>
+    <mat-divider></mat-divider>
+    <button mat-button class="logout-btn" (click)="logout()">
+      <mat-icon>logout</mat-icon>
+      Logout
+    </button>
+  </div>
+}

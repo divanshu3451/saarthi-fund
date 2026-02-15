@@ -182,4 +182,8 @@ export class ApiService {
   updateInterestBracket(id: string, data: Partial<InterestBracket>) {
     return this.http.put<InterestBracket>(`${this.apiUrl}/admin/interest-brackets/${id}`, data);
   }
+
+  bulkImportDeposits(userId: string, deposits: { amount: number; member_month: number; deposit_date: string; notes?: string }[]) {
+    return this.http.post<{ message: string; count: number }>(`${this.apiUrl}/admin/bulk-deposits`, { user_id: userId, deposits });
+  }
 }

@@ -1,153 +1,351 @@
 <div class="admin-page">
-  <h1>Admin Panel</h1>
+  <h1>
+    <mat-icon>admin_panel_settings</mat-icon>
+    Admin Panel
+  </h1>
   
-  <div class="tabs">
-    <button [class.active]="activeTab() === 'pending'" (click)="activeTab.set('pending')">Pending Users</button>
-    <button [class.active]="activeTab() === 'members'" (click)="activeTab.set('members')">Members</button>
-    <button [class.active]="activeTab() === 'settings'" (click)="activeTab.set('settings')">Settings</button>
-    <button [class.active]="activeTab() === 'brackets'" (click)="activeTab.set('brackets')">Interest Brackets</button>
-  </div>
-  
-  @switch (activeTab()) {
-    @case ('pending') {
-      <section class="pending-users">
-        <h2>Pending Approvals</h2>
-        @if (pendingUsers().length) {
-          <div class="users-grid">
-            @for (user of pendingUsers(); track user.id) {
-              <div class="user-card">
-                <div class="user-info">
-                  <strong>{{ user.name }}</strong>
-                  <span>{{ user.email }}</span>
-                  <span>{{ user.phone }}</span>
-                </div>
-                <div class="user-actions">
-                  <button class="btn-approve" (click)="approveUser(user.id)">Approve</button>
-                  <button class="btn-reject" (click)="rejectUser(user.id)">Reject</button>
-                </div>
-              </div>
-            }
-          </div>
-        } @else {
-          <p class="empty">No pending users</p>
-        }
-      </section>
-    }
-    
-    @case ('members') {
-      <section class="members">
-        <h2>All Members</h2>
-        <div class="table-container">
-          <table>
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Email</th>
-                <th>Phone</th>
-                <th>Status</th>
-                <th>Joined</th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (member of members(); track member.id) {
-                <tr>
-                  <td>{{ member.name }}</td>
-                  <td>{{ member.email }}</td>
-                  <td>{{ member.phone || '-' }}</td>
-                  <td><span class="badge" [class]="member.status">{{ member.status }}</span></td>
-                  <td>{{ member.joined_at | date:'mediumDate' }}</td>
-                </tr>
+  <mat-tab-group>
+    <mat-tab label="Pending Users">
+      <ng-template matTabContent>
+        <div style="padding: 24px 0;">
+          @if (pendingUsers().length) {
+            <div class="users-grid">
+              @for (user of pendingUsers(); track user.id) {
+                <mat-card class="user-card">
+                  <mat-card-content>
+                    <div class="user-info">
+                      <strong>{{ user.name }}</strong>
+                      <span>{{ user.email }}</span>
+                      <span>{{ user.phone }}</span>
+                    </div>
+                    <div class="user-actions">
+                      <button mat-mini-fab color="primary" (click)="approveUser(user.id)" matTooltip="Approve">
+                        <mat-icon>check</mat-icon>
+                      </button>
+                      <button mat-mini-fab color="warn" (click)="rejectUser(user.id)" matTooltip="Reject">
+                        <mat-icon>close</mat-icon>
+                      </button>
+                    </div>
+                  </mat-card-content>
+                </mat-card>
               }
-            </tbody>
-          </table>
-        </div>
-      </section>
-    }
-    
-    @case ('settings') {
-      <section class="settings">
-        <h2>Fund Settings</h2>
-        <div class="settings-grid">
-          @for (setting of settings(); track setting.id) {
-            <div class="setting-card">
-              <label>{{ setting.setting_key }}</label>
-              <p class="description">{{ setting.description }}</p>
-              <div class="setting-input">
-                <input type="text" [value]="setting.setting_value" #input />
-                <button class="btn-save" (click)="updateSetting(setting.setting_key, input.value)">Save</button>
-              </div>
+            </div>
+          } @else {
+            <div class="empty-state">
+              <mat-icon>how_to_reg</mat-icon>
+              <p>No pending users</p>
             </div>
           }
         </div>
-      </section>
-    }
+      </ng-template>
+    </mat-tab>
     
-    @case ('brackets') {
-      <section class="brackets">
-        <h2>Interest Rate Brackets</h2>
-        <div class="table-container">
-          <table>
-            <thead>
-              <tr>
-                <th>Min Multiplier</th>
-                <th>Max Multiplier</th>
-                <th>Interest Rate</th>
-                <th>Active</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (bracket of brackets(); track bracket.id) {
-                <tr>
-                  @if (editingBracket()?.id === bracket.id) {
-                    <td><input type="number" [(ngModel)]="editingBracket()!.min_multiplier" step="0.5" class="table-input" /></td>
-                    <td><input type="number" [(ngModel)]="editingBracket()!.max_multiplier" step="0.5" class="table-input" placeholder="∞" /></td>
-                    <td><input type="number" [(ngModel)]="editingBracket()!.interest_rate" step="0.5" class="table-input" /></td>
-                    <td>
-                      <input type="checkbox" [(ngModel)]="editingBracket()!.is_active" />
-                    </td>
-                    <td>
-                      <button class="btn-save-small" (click)="saveBracket()">Save</button>
-                      <button class="btn-cancel" (click)="cancelEdit()">Cancel</button>
-                    </td>
-                  } @else {
-                    <td>{{ bracket.min_multiplier }}x</td>
-                    <td>{{ bracket.max_multiplier ? bracket.max_multiplier + 'x' : '∞' }}</td>
-                    <td>{{ bracket.interest_rate }}%</td>
-                    <td>
-                      <span class="badge" [class.active]="bracket.is_active" [class.inactive]="!bracket.is_active">
-                        {{ bracket.is_active ? 'Yes' : 'No' }}
-                      </span>
-                    </td>
-                    <td>
-                      <button class="btn-edit" (click)="editBracket(bracket)">Edit</button>
-                    </td>
-                  }
-                </tr>
-              }
-            </tbody>
-          </table>
+    <mat-tab label="Members">
+      <ng-template matTabContent>
+        <div style="padding: 24px 0;">
+          <mat-card>
+            <mat-card-content>
+              <table mat-table [dataSource]="members()">
+                <ng-container matColumnDef="name">
+                  <th mat-header-cell *matHeaderCellDef>Name</th>
+                  <td mat-cell *matCellDef="let member">{{ member.name }}</td>
+                </ng-container>
+                
+                <ng-container matColumnDef="email">
+                  <th mat-header-cell *matHeaderCellDef>Email</th>
+                  <td mat-cell *matCellDef="let member">{{ member.email }}</td>
+                </ng-container>
+                
+                <ng-container matColumnDef="phone">
+                  <th mat-header-cell *matHeaderCellDef>Phone</th>
+                  <td mat-cell *matCellDef="let member">{{ member.phone || '-' }}</td>
+                </ng-container>
+                
+                <ng-container matColumnDef="status">
+                  <th mat-header-cell *matHeaderCellDef>Status</th>
+                  <td mat-cell *matCellDef="let member">
+                    <mat-chip class="status-chip" [class]="member.status">{{ member.status }}</mat-chip>
+                  </td>
+                </ng-container>
+                
+                <ng-container matColumnDef="joined_at">
+                  <th mat-header-cell *matHeaderCellDef>Joined</th>
+                  <td mat-cell *matCellDef="let member">{{ member.joined_at | date:'mediumDate' }}</td>
+                </ng-container>
+                
+                <tr mat-header-row *matHeaderRowDef="memberColumns"></tr>
+                <tr mat-row *matRowDef="let row; columns: memberColumns;"></tr>
+              </table>
+            </mat-card-content>
+          </mat-card>
         </div>
-        
-        <h3>Add New Bracket</h3>
-        <form (ngSubmit)="addBracket()" class="bracket-form">
-          <div class="form-row">
-            <div class="form-group">
-              <label>Min Multiplier</label>
-              <input type="number" [(ngModel)]="newBracket.min_multiplier" name="min" step="0.5" required />
-            </div>
-            <div class="form-group">
-              <label>Max Multiplier</label>
-              <input type="number" [(ngModel)]="newBracket.max_multiplier" name="max" step="0.5" placeholder="Leave empty for ∞" />
-            </div>
-            <div class="form-group">
-              <label>Interest Rate (%)</label>
-              <input type="number" [(ngModel)]="newBracket.interest_rate" name="rate" step="0.5" required />
-            </div>
+      </ng-template>
+    </mat-tab>
+    
+    <mat-tab label="Settings">
+      <ng-template matTabContent>
+        <div style="padding: 24px 0;">
+          <div class="settings-grid">
+            @for (setting of settings(); track setting.id) {
+              <mat-card class="setting-card">
+                <mat-card-header>
+                  <mat-card-title>{{ setting.setting_key }}</mat-card-title>
+                  <mat-card-subtitle>{{ setting.description }}</mat-card-subtitle>
+                </mat-card-header>
+                <mat-card-content>
+                  <div class="setting-input">
+                    <mat-form-field appearance="outline">
+                      <mat-label>Value</mat-label>
+                      <input matInput [value]="setting.setting_value" #input />
+                    </mat-form-field>
+                    <button mat-raised-button color="primary" (click)="updateSetting(setting.setting_key, input.value)">
+                      <mat-icon>save</mat-icon>
+                      Save
+                    </button>
+                  </div>
+                </mat-card-content>
+              </mat-card>
+            }
           </div>
-          <button type="submit" class="btn-primary">Add Bracket</button>
-        </form>
-      </section>
-    }
-  }
+        </div>
+      </ng-template>
+    </mat-tab>
+    
+    <mat-tab label="Interest Brackets">
+      <ng-template matTabContent>
+        <div style="padding: 24px 0;">
+          <mat-card>
+            <mat-card-header>
+              <mat-card-title>Interest Rate Brackets</mat-card-title>
+            </mat-card-header>
+            <mat-card-content>
+              <table mat-table [dataSource]="brackets()">
+                <ng-container matColumnDef="min_multiplier">
+                  <th mat-header-cell *matHeaderCellDef>Min Multiplier</th>
+                  <td mat-cell *matCellDef="let bracket">
+                    @if (editingBracket()?.id === bracket.id) {
+                      <mat-form-field appearance="outline" class="table-input">
+                        <input matInput type="number" [(ngModel)]="editingBracket()!.min_multiplier" step="0.5" />
+                      </mat-form-field>
+                    } @else {
+                      {{ bracket.min_multiplier }}x
+                    }
+                  </td>
+                </ng-container>
+                
+                <ng-container matColumnDef="max_multiplier">
+                  <th mat-header-cell *matHeaderCellDef>Max Multiplier</th>
+                  <td mat-cell *matCellDef="let bracket">
+                    @if (editingBracket()?.id === bracket.id) {
+                      <mat-form-field appearance="outline" class="table-input">
+                        <input matInput type="number" [(ngModel)]="editingBracket()!.max_multiplier" step="0.5" placeholder="∞" />
+                      </mat-form-field>
+                    } @else {
+                      {{ bracket.max_multiplier ? bracket.max_multiplier + 'x' : '∞' }}
+                    }
+                  </td>
+                </ng-container>
+                
+                <ng-container matColumnDef="interest_rate">
+                  <th mat-header-cell *matHeaderCellDef>Interest Rate</th>
+                  <td mat-cell *matCellDef="let bracket">
+                    @if (editingBracket()?.id === bracket.id) {
+                      <mat-form-field appearance="outline" class="table-input">
+                        <input matInput type="number" [(ngModel)]="editingBracket()!.interest_rate" step="0.5" />
+                      </mat-form-field>
+                    } @else {
+                      {{ bracket.interest_rate }}%
+                    }
+                  </td>
+                </ng-container>
+                
+                <ng-container matColumnDef="is_active">
+                  <th mat-header-cell *matHeaderCellDef>Active</th>
+                  <td mat-cell *matCellDef="let bracket">
+                    @if (editingBracket()?.id === bracket.id) {
+                      <mat-checkbox [(ngModel)]="editingBracket()!.is_active"></mat-checkbox>
+                    } @else {
+                      <mat-chip class="status-chip" [class.active]="bracket.is_active" [class.inactive]="!bracket.is_active">
+                        {{ bracket.is_active ? 'Yes' : 'No' }}
+                      </mat-chip>
+                    }
+                  </td>
+                </ng-container>
+                
+                <ng-container matColumnDef="actions">
+                  <th mat-header-cell *matHeaderCellDef>Actions</th>
+                  <td mat-cell *matCellDef="let bracket">
+                    @if (editingBracket()?.id === bracket.id) {
+                      <button mat-icon-button color="primary" (click)="saveBracket()">
+                        <mat-icon>save</mat-icon>
+                      </button>
+                      <button mat-icon-button (click)="cancelEdit()">
+                        <mat-icon>close</mat-icon>
+                      </button>
+                    } @else {
+                      <button mat-icon-button color="primary" (click)="editBracket(bracket)">
+                        <mat-icon>edit</mat-icon>
+                      </button>
+                    }
+                  </td>
+                </ng-container>
+                
+                <tr mat-header-row *matHeaderRowDef="bracketColumns"></tr>
+                <tr mat-row *matRowDef="let row; columns: bracketColumns;"></tr>
+              </table>
+            </mat-card-content>
+          </mat-card>
+          
+          <mat-card class="bracket-form">
+            <mat-card-header>
+              <mat-card-title>Add New Bracket</mat-card-title>
+            </mat-card-header>
+            <mat-card-content>
+              <mat-form-field appearance="outline">
+                <mat-label>Min Multiplier</mat-label>
+                <input matInput type="number" [(ngModel)]="newBracket.min_multiplier" step="0.5" />
+              </mat-form-field>
+              
+              <mat-form-field appearance="outline">
+                <mat-label>Max Multiplier</mat-label>
+                <input matInput type="number" [(ngModel)]="newBracket.max_multiplier" step="0.5" placeholder="Leave empty for ∞" />
+              </mat-form-field>
+              
+              <mat-form-field appearance="outline">
+                <mat-label>Interest Rate (%)</mat-label>
+                <input matInput type="number" [(ngModel)]="newBracket.interest_rate" step="0.5" />
+              </mat-form-field>
+              
+              <button mat-raised-button color="primary" (click)="addBracket()">
+                <mat-icon>add</mat-icon>
+                Add Bracket
+              </button>
+            </mat-card-content>
+          </mat-card>
+        </div>
+      </ng-template>
+    </mat-tab>
+    
+    <mat-tab label="Bulk Import">
+      <ng-template matTabContent>
+        <div style="padding: 24px 0;">
+          <mat-card class="bulk-import-card">
+            <mat-card-header>
+              <mat-icon mat-card-avatar>upload_file</mat-icon>
+              <mat-card-title>Bulk Deposit Import</mat-card-title>
+              <mat-card-subtitle>Import multiple deposits for a member at once (supports backdating)</mat-card-subtitle>
+            </mat-card-header>
+            <mat-card-content>
+              <div class="bulk-controls">
+                <mat-form-field appearance="outline" class="member-select">
+                  <mat-label>Select Member</mat-label>
+                  <mat-select [(ngModel)]="selectedUserId">
+                    @for (member of members(); track member.id) {
+                      <mat-option [value]="member.id">{{ member.name }} ({{ member.email }})</mat-option>
+                    }
+                  </mat-select>
+                  <mat-icon matPrefix>person</mat-icon>
+                </mat-form-field>
+                
+                <div class="bulk-actions">
+                  <button mat-stroked-button color="primary" (click)="generateBulkRows()">
+                    <mat-icon>auto_fix_high</mat-icon>
+                    Generate Series
+                  </button>
+                  <button mat-stroked-button (click)="addBulkRow()">
+                    <mat-icon>add</mat-icon>
+                    Add Row
+                  </button>
+                  <button mat-stroked-button color="warn" (click)="clearBulkRows()" [disabled]="bulkDeposits().length === 0">
+                    <mat-icon>clear_all</mat-icon>
+                    Clear All
+                  </button>
+                </div>
+              </div>
+              
+              @if (bulkDeposits().length > 0) {
+                <div class="table-container">
+                  <table mat-table [dataSource]="bulkDeposits()">
+                    <ng-container matColumnDef="member_month">
+                      <th mat-header-cell *matHeaderCellDef>Month #</th>
+                      <td mat-cell *matCellDef="let row; let i = index">
+                        <mat-form-field appearance="outline" class="table-input">
+                          <input matInput type="number" [(ngModel)]="bulkDeposits()[i].member_month" min="1" />
+                        </mat-form-field>
+                      </td>
+                    </ng-container>
+                    
+                    <ng-container matColumnDef="amount">
+                      <th mat-header-cell *matHeaderCellDef>Amount (₹)</th>
+                      <td mat-cell *matCellDef="let row; let i = index">
+                        <mat-form-field appearance="outline" class="table-input">
+                          <input matInput type="number" [(ngModel)]="bulkDeposits()[i].amount" step="300" min="300" />
+                        </mat-form-field>
+                      </td>
+                    </ng-container>
+                    
+                    <ng-container matColumnDef="deposit_date">
+                      <th mat-header-cell *matHeaderCellDef>Date</th>
+                      <td mat-cell *matCellDef="let row; let i = index">
+                        <mat-form-field appearance="outline" class="table-input-date">
+                          <input matInput type="date" [(ngModel)]="bulkDeposits()[i].deposit_date" />
+                        </mat-form-field>
+                      </td>
+                    </ng-container>
+                    
+                    <ng-container matColumnDef="notes">
+                      <th mat-header-cell *matHeaderCellDef>Notes</th>
+                      <td mat-cell *matCellDef="let row; let i = index">
+                        <mat-form-field appearance="outline" class="table-input-notes">
+                          <input matInput [(ngModel)]="bulkDeposits()[i].notes" placeholder="Optional" />
+                        </mat-form-field>
+                      </td>
+                    </ng-container>
+                    
+                    <ng-container matColumnDef="actions">
+                      <th mat-header-cell *matHeaderCellDef></th>
+                      <td mat-cell *matCellDef="let row; let i = index">
+                        <button mat-icon-button color="warn" (click)="removeBulkRow(i)">
+                          <mat-icon>delete</mat-icon>
+                        </button>
+                      </td>
+                    </ng-container>
+                    
+                    <tr mat-header-row *matHeaderRowDef="bulkDepositColumns"></tr>
+                    <tr mat-row *matRowDef="let row; columns: bulkDepositColumns;"></tr>
+                  </table>
+                </div>
+                
+                <div class="bulk-summary">
+                  <div class="summary-item">
+                    <span class="label">Total Entries:</span>
+                    <span class="value">{{ bulkDeposits().length }}</span>
+                  </div>
+                  <div class="summary-item">
+                    <span class="label">Total Amount:</span>
+                    <span class="value highlight">{{ getTotalBulkAmount() | currency:'INR' }}</span>
+                  </div>
+                  <button mat-raised-button color="primary" (click)="submitBulkDeposits()" [disabled]="bulkLoading() || !selectedUserId">
+                    @if (bulkLoading()) {
+                      <mat-spinner diameter="20"></mat-spinner>
+                    } @else {
+                      <ng-container>
+                        <mat-icon>upload</mat-icon>
+                        Import {{ bulkDeposits().length }} Deposits
+                      </ng-container>
+                    }
+                  </button>
+                </div>
+              } @else {
+                <div class="empty-state">
+                  <mat-icon>table_rows</mat-icon>
+                  <p>No deposits to import. Click "Add Row" or "Generate Series" to start.</p>
+                </div>
+              }
+            </mat-card-content>
+          </mat-card>
+        </div>
+      </ng-template>
+    </mat-tab>
+  </mat-tab-group>
 </div>

@@ -1,139 +1,270 @@
 <div class="loan-detail">
   @if (loan()) {
-    <div class="loan-header">
-      <h1>Loan Details</h1>
-      <span class="loan-status" [class]="loan()!.status">{{ loan()!.status }}</span>
+    <div class="header-row">
+      <h2><mat-icon>receipt_long</mat-icon> Loan Details</h2>
+      <mat-chip-set>
+        <mat-chip class="status-chip" [class]="loan()!.status">{{ loan()!.status | uppercase }}</mat-chip>
+      </mat-chip-set>
     </div>
     
-    <section class="loan-info">
-      <div class="info-grid">
-        <div class="info-card">
-          <span class="label">Principal Amount</span>
-          <span class="value">{{ loan()!.principal_amount | currency:'INR' }}</span>
-        </div>
-        <div class="info-card">
-          <span class="label">Interest Rate</span>
-          <span class="value">{{ loan()!.interest_rate }}%</span>
-        </div>
-        <div class="info-card">
-          <span class="label">Multiplier</span>
-          <span class="value">{{ loan()!.multiplier_at_disbursement }}x</span>
-        </div>
-        <div class="info-card">
-          <span class="label">Outstanding</span>
-          <span class="value">{{ loan()!.outstanding_principal | currency:'INR' }}</span>
-        </div>
-        <div class="info-card">
-          <span class="label">Disbursed On</span>
-          <span class="value">{{ loan()!.disbursed_at | date:'mediumDate' }}</span>
-        </div>
-        <div class="info-card">
-          <span class="label">Maturity Date</span>
-          <span class="value">{{ loan()!.maturity_date | date:'mediumDate' }}</span>
-        </div>
-      </div>
+    <!-- Loan Info Cards -->
+    <section class="info-grid">
+      <mat-card class="info-card">
+        <mat-card-content>
+          <div class="info-value primary">{{ loan()!.principal_amount | currency:'INR' }}</div>
+          <div class="info-label">Principal Amount</div>
+        </mat-card-content>
+      </mat-card>
+      
+      <mat-card class="info-card">
+        <mat-card-content>
+          <div class="info-value">{{ loan()!.interest_rate }}%</div>
+          <div class="info-label">Interest Rate</div>
+        </mat-card-content>
+      </mat-card>
+      
+      <mat-card class="info-card">
+        <mat-card-content>
+          <div class="info-value">{{ loan()!.multiplier_at_disbursement }}x</div>
+          <div class="info-label">Multiplier</div>
+        </mat-card-content>
+      </mat-card>
+      
+      <mat-card class="info-card">
+        <mat-card-content>
+          <div class="info-value warn">{{ loan()!.outstanding_principal | currency:'INR' }}</div>
+          <div class="info-label">Outstanding</div>
+        </mat-card-content>
+      </mat-card>
+
+      <mat-card class="info-card">
+        <mat-card-content>
+          <div class="info-value">{{ loan()!.disbursed_at | date:'mediumDate' }}</div>
+          <div class="info-label">Disbursed On</div>
+        </mat-card-content>
+      </mat-card>
+      
+      <mat-card class="info-card">
+        <mat-card-content>
+          <div class="info-value">{{ loan()!.maturity_date | date:'mediumDate' }}</div>
+          <div class="info-label">Maturity Date</div>
+        </mat-card-content>
+      </mat-card>
     </section>
     
+    <!-- Prepayment Section -->
+    @if (loan()!.status === 'active') {
+      <section>
+        <mat-card class="action-card">
+          <mat-card-header>
+            <mat-icon mat-card-avatar>payments</mat-icon>
+            <mat-card-title>Make Prepayment</mat-card-title>
+            <mat-card-subtitle>Pay any amount towards principal (no penalty)</mat-card-subtitle>
+          </mat-card-header>
+          <mat-card-content>
+            <form (ngSubmit)="makePrepayment()" class="form-row">
+              <mat-form-field appearance="outline">
+                <mat-label>Amount (₹)</mat-label>
+                <input matInput type="number" [(ngModel)]="prepayAmount" name="prepay_amount" [max]="loan()!.outstanding_principal" min="1" required />
+                <mat-icon matPrefix>currency_rupee</mat-icon>
+                <mat-hint>Max: {{ loan()!.outstanding_principal | currency:'INR' }}</mat-hint>
+              </mat-form-field>
+              
+              <mat-form-field appearance="outline">
+                <mat-label>Payment Date</mat-label>
+                <input matInput type="date" [(ngModel)]="prepayDate" name="prepay_date" required />
+                <mat-icon matPrefix>event</mat-icon>
+              </mat-form-field>
+              
+              <button mat-raised-button color="primary" type="submit" [disabled]="loading()">
+                @if (loading()) {
+                  <mat-spinner diameter="20"></mat-spinner>
+                } @else {
+                  <ng-container>
+                    <!-- <mat-icon>send</mat-icon> -->
+                    Pay Now
+                  </ng-container>
+                }
+              </button>
+            </form>
+          </mat-card-content>
+        </mat-card>
+      </section>
+    }
+
+    <!-- Start EMI Section -->
     @if (!loan()!.emi_start_date && loan()!.status === 'active') {
-      <section class="start-emi">
-        <h2>Start EMI</h2>
-        <form (ngSubmit)="startEmi()" class="emi-form">
-          <div class="form-row">
-            <div class="form-group">
-              <label>EMI Start Date</label>
-              <input type="date" [(ngModel)]="emiStartDate" name="emi_start_date" required />
-            </div>
-            <div class="form-group">
-              <label>Number of EMIs</label>
-              <input type="number" [(ngModel)]="emiMonths" name="emi_months" min="1" max="36" required />
-            </div>
-          </div>
-          <button type="submit" class="btn-primary" [disabled]="loading()">
-            {{ loading() ? 'Starting...' : 'Start EMI' }}
-          </button>
-        </form>
-        @if (error()) {
-          <div class="error-message">{{ error() }}</div>
-        }
+      <section>
+        <mat-card class="action-card">
+          <mat-card-header>
+            <mat-icon mat-card-avatar>schedule</mat-icon>
+            <mat-card-title>Start EMI</mat-card-title>
+            <mat-card-subtitle>Configure and start your EMI payments</mat-card-subtitle>
+          </mat-card-header>
+          <mat-card-content>
+            <form (ngSubmit)="startEmi()" class="form-row">
+              <mat-form-field appearance="outline">
+                <mat-label>EMI Start Date</mat-label>
+                <input matInput type="date" [(ngModel)]="emiStartDate" name="emi_start_date" required />
+                <mat-icon matPrefix>event</mat-icon>
+              </mat-form-field>
+              
+              <mat-form-field appearance="outline">
+                <mat-label>Number of EMIs</mat-label>
+                <input matInput type="number" [(ngModel)]="emiMonths" name="emi_months" min="1" max="36" required />
+                <mat-icon matPrefix>numbers</mat-icon>
+              </mat-form-field>
+              
+              <button mat-raised-button color="primary" type="submit" [disabled]="loading()">
+                @if (loading()) {
+                  <mat-spinner diameter="20"></mat-spinner>
+                } @else {
+                  <ng-container>
+                    <!-- <mat-icon>play_arrow</mat-icon> -->
+                    Start EMI
+                  </ng-container>
+                }
+              </button>
+            </form>
+          </mat-card-content>
+        </mat-card>
       </section>
     }
-    
+
+    <!-- Pre-EMI Interest Section -->
     @if (loan()!.pre_emi_interest?.length) {
-      <section class="pre-emi-section">
-        <h2>Pre-EMI Interest</h2>
-        <div class="table-container">
-          <table>
-            <thead>
-              <tr>
-                <th>Period</th>
-                <th>Days</th>
-                <th>Amount</th>
-                <th>Due Date</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (pei of loan()!.pre_emi_interest; track pei.id) {
-                <tr>
-                  <td>{{ pei.period_start | date:'shortDate' }} - {{ pei.period_end | date:'shortDate' }}</td>
-                  <td>{{ pei.days_count }} days</td>
-                  <td>{{ pei.interest_amount | currency:'INR' }}</td>
-                  <td>{{ pei.due_date | date:'mediumDate' }}</td>
-                  <td>
-                    @if (pei.is_paid) {
-                      <span class="badge paid">Paid</span>
-                    } @else {
-                      <span class="badge pending">Pending</span>
+      <section>
+        <mat-card class="schedule-card">
+          <mat-card-header>
+            <mat-icon mat-card-avatar>percent</mat-icon>
+            <mat-card-title>Pre-EMI Interest</mat-card-title>
+            <mat-card-subtitle>Interest accrued before EMI starts</mat-card-subtitle>
+          </mat-card-header>
+          <mat-card-content>
+            <div class="table-container">
+              <table mat-table [dataSource]="loan()!.pre_emi_interest!">
+                <ng-container matColumnDef="period">
+                  <th mat-header-cell *matHeaderCellDef>Period</th>
+                  <td mat-cell *matCellDef="let pei">{{ pei.period_start | date:'shortDate' }} - {{ pei.period_end | date:'shortDate' }}</td>
+                </ng-container>
+                
+                <ng-container matColumnDef="days">
+                  <th mat-header-cell *matHeaderCellDef>Days</th>
+                  <td mat-cell *matCellDef="let pei">{{ pei.days_count }}</td>
+                </ng-container>
+                
+                <ng-container matColumnDef="amount">
+                  <th mat-header-cell *matHeaderCellDef>Amount</th>
+                  <td mat-cell *matCellDef="let pei" class="amount-cell">{{ pei.interest_amount | currency:'INR' }}</td>
+                </ng-container>
+                
+                <ng-container matColumnDef="due_date">
+                  <th mat-header-cell *matHeaderCellDef>Due Date</th>
+                  <td mat-cell *matCellDef="let pei">{{ pei.due_date | date:'mediumDate' }}</td>
+                </ng-container>
+                
+                <ng-container matColumnDef="status">
+                  <th mat-header-cell *matHeaderCellDef>Status</th>
+                  <td mat-cell *matCellDef="let pei">
+                    <mat-chip class="status-chip" [class.paid]="pei.is_paid" [class.pending]="!pei.is_paid">
+                      {{ pei.is_paid ? 'Paid' : 'Pending' }}
+                    </mat-chip>
+                  </td>
+                </ng-container>
+                
+                <ng-container matColumnDef="action">
+                  <th mat-header-cell *matHeaderCellDef>Action</th>
+                  <td mat-cell *matCellDef="let pei">
+                    @if (!pei.is_paid) {
+                      <button mat-stroked-button color="primary" (click)="payPreEmi(pei)">
+                        <mat-icon>payment</mat-icon> Pay
+                      </button>
                     }
                   </td>
-                </tr>
-              }
-            </tbody>
-          </table>
-        </div>
+                </ng-container>
+                
+                <tr mat-header-row *matHeaderRowDef="preEmiColumns"></tr>
+                <tr mat-row *matRowDef="let row; columns: preEmiColumns;"></tr>
+              </table>
+            </div>
+          </mat-card-content>
+        </mat-card>
       </section>
     }
-    
+
+    <!-- EMI Schedule Section -->
     @if (loan()!.emi_schedule?.length) {
-      <section class="emi-section">
-        <h2>EMI Schedule</h2>
-        <div class="table-container">
-          <table>
-            <thead>
-              <tr>
-                <th>EMI #</th>
-                <th>Due Date</th>
-                <th>Principal</th>
-                <th>Interest</th>
-                <th>Total EMI</th>
-                <th>Outstanding After</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (emi of loan()!.emi_schedule; track emi.id) {
-                <tr>
-                  <td>{{ emi.emi_number }}</td>
-                  <td>{{ emi.due_date | date:'mediumDate' }}</td>
-                  <td>{{ emi.principal_component | currency:'INR' }}</td>
-                  <td>{{ emi.interest_component | currency:'INR' }}</td>
-                  <td>{{ emi.total_emi | currency:'INR' }}</td>
-                  <td>{{ emi.outstanding_after | currency:'INR' }}</td>
-                  <td>
-                    @if (emi.is_paid) {
-                      <span class="badge paid">Paid</span>
-                    } @else {
-                      <span class="badge pending">Pending</span>
+      <section>
+        <mat-card class="schedule-card">
+          <mat-card-header>
+            <mat-icon mat-card-avatar>calendar_month</mat-icon>
+            <mat-card-title>EMI Schedule</mat-card-title>
+            <mat-card-subtitle>Monthly payment schedule</mat-card-subtitle>
+          </mat-card-header>
+          <mat-card-content>
+            <div class="table-container">
+              <table mat-table [dataSource]="loan()!.emi_schedule!">
+                <ng-container matColumnDef="emi_number">
+                  <th mat-header-cell *matHeaderCellDef>#</th>
+                  <td mat-cell *matCellDef="let emi">{{ emi.emi_number }}</td>
+                </ng-container>
+                
+                <ng-container matColumnDef="due_date">
+                  <th mat-header-cell *matHeaderCellDef>Due Date</th>
+                  <td mat-cell *matCellDef="let emi">{{ emi.due_date | date:'mediumDate' }}</td>
+                </ng-container>
+                
+                <ng-container matColumnDef="principal">
+                  <th mat-header-cell *matHeaderCellDef>Principal</th>
+                  <td mat-cell *matCellDef="let emi" class="amount-cell">{{ emi.principal_component | currency:'INR' }}</td>
+                </ng-container>
+                
+                <ng-container matColumnDef="interest">
+                  <th mat-header-cell *matHeaderCellDef>Interest</th>
+                  <td mat-cell *matCellDef="let emi">{{ emi.interest_component | currency:'INR' }}</td>
+                </ng-container>
+                
+                <ng-container matColumnDef="total">
+                  <th mat-header-cell *matHeaderCellDef>Total</th>
+                  <td mat-cell *matCellDef="let emi" class="total-cell">{{ emi.total_emi | currency:'INR' }}</td>
+                </ng-container>
+                
+                <ng-container matColumnDef="outstanding">
+                  <th mat-header-cell *matHeaderCellDef>Balance After</th>
+                  <td mat-cell *matCellDef="let emi" class="outstanding-cell">{{ emi.outstanding_after | currency:'INR' }}</td>
+                </ng-container>
+                
+                <ng-container matColumnDef="status">
+                  <th mat-header-cell *matHeaderCellDef>Status</th>
+                  <td mat-cell *matCellDef="let emi">
+                    <mat-chip class="status-chip" [class.paid]="emi.is_paid" [class.pending]="!emi.is_paid">
+                      {{ emi.is_paid ? 'Paid' : 'Pending' }}
+                    </mat-chip>
+                  </td>
+                </ng-container>
+                
+                <ng-container matColumnDef="action">
+                  <th mat-header-cell *matHeaderCellDef>Action</th>
+                  <td mat-cell *matCellDef="let emi">
+                    @if (!emi.is_paid) {
+                      <button mat-stroked-button color="primary" (click)="payEmi(emi)">
+                        <mat-icon>payment</mat-icon> Pay
+                      </button>
                     }
                   </td>
-                </tr>
-              }
-            </tbody>
-          </table>
-        </div>
+                </ng-container>
+                
+                <tr mat-header-row *matHeaderRowDef="emiColumns"></tr>
+                <tr mat-row *matRowDef="let row; columns: emiColumns;"></tr>
+              </table>
+            </div>
+          </mat-card-content>
+        </mat-card>
       </section>
     }
   } @else {
-    <p>Loading...</p>
+    <div class="loading-container">
+      <mat-spinner></mat-spinner>
+    </div>
   }
 </div>

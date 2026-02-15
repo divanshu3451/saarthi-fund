@@ -242,4 +242,109 @@ router.put('/interest-brackets/:id', authenticate, requireAdmin, async (req: Aut
   }
 });
 
+/**
+ * @swagger
+ * /api/admin/bulk-deposits:
+ *   post:
+ *     summary: Bulk import deposits for a user (backdate support)
+ *     tags: [Admin]
+ *     security: [{ bearerAuth: [] }]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [user_id, deposits]
+ *             properties:
+ *               user_id:
+ *                 type: string
+ *                 format: uuid
+ *               deposits:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   required: [amount, member_month, deposit_date]
+ *                   properties:
+ *                     amount: { type: number }
+ *                     member_month: { type: integer }
+ *                     deposit_date: { type: string, format: date }
+ *                     notes: { type: string }
+ *     responses:
+ *       201: { description: Deposits imported successfully }
+ *       400: { description: Validation error }
+ *       403: { description: Admin access required }
+ */
+router.post('/bulk-deposits', authenticate, requireAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    const { user_id, deposits } = req.body;
+
+    if (!user_id || !deposits || !Array.isArray(deposits) || deposits.length === 0) {
+      return res.status(400).json({ error: 'user_id and deposits array are required' });
+    }
+
+    // Verify user exists
+    const user = await prisma.users.findUnique({ where: { id: user_id } });
+    if (!user) {
+      return res.status(400).json({ error: 'User not found' });
+    }
+
+    // Get deposit multiple setting
+    const settings = await prisma.fund_settings.findUnique({
+      where: { setting_key: 'deposit_multiple' }
+    });
+    const multiple = parseInt(settings?.setting_value || '300');
+
+    // Validate all deposits first
+    for (const dep of deposits) {
+      if (!dep.amount || !dep.member_month || !dep.deposit_date) {
+        return res.status(400).json({ error: 'Each deposit must have amount, member_month, and deposit_date' });
+      }
+      if (dep.amount % multiple !== 0) {
+        return res.status(400).json({ error: `Amount ${dep.amount} must be multiple of ${multiple}` });
+      }
+      if (dep.member_month < 1) {
+        return res.status(400).json({ error: 'member_month must be at least 1' });
+      }
+    }
+
+    // Sort deposits by member_month to calculate cumulative correctly
+    const sortedDeposits = [...deposits].sort((a, b) => a.member_month - b.member_month);
+
+    // Get existing cumulative total
+    const existing = await prisma.deposits.aggregate({
+      where: { user_id },
+      _sum: { amount: true }
+    });
+    let runningTotal = Number(existing._sum.amount || 0);
+
+    // Create all deposits in a transaction
+    const createdDeposits = await prisma.$transaction(
+      sortedDeposits.map(dep => {
+        runningTotal += dep.amount;
+        return prisma.deposits.create({
+          data: {
+            user_id,
+            amount: dep.amount,
+            member_month: dep.member_month,
+            deposit_date: new Date(dep.deposit_date),
+            cumulative_total: runningTotal,
+            notes: dep.notes || `Bulk import`,
+            recorded_by: req.user!.id
+          }
+        });
+      })
+    );
+
+    res.status(201).json({
+      message: `Successfully imported ${createdDeposits.length} deposits`,
+      count: createdDeposits.length,
+      deposits: createdDeposits
+    });
+  } catch (error) {
+    console.error('Bulk deposit error:', error);
+    res.status(500).json({ error: 'Failed to import deposits' });
+  }
+});
+
 export default router;

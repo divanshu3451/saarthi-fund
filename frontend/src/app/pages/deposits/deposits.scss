@@ -1,113 +1,103 @@
-h1 {
-  margin-bottom: 2rem;
-  color: #333;
-}
+.deposits-page {
+  h2 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 24px;
+    color: rgba(0, 0, 0, 0.87);
 
-section {
-  margin-bottom: 2rem;
-}
-
-h2 {
-  color: #444;
-  margin-bottom: 1rem;
-}
-
-.deposit-form {
-  background: white;
-  padding: 1.5rem;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-}
-
-.form-row {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1rem;
-  margin-bottom: 1rem;
-}
-
-.form-group {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-label {
-  font-weight: 500;
-  color: #333;
-}
-
-input,
-select {
-  padding: 0.75rem;
-  border: 1px solid #ddd;
-  border-radius: 6px;
-  font-size: 1rem;
-
-  &:focus {
-    outline: none;
-    border-color: #667eea;
+    mat-icon {
+      color: #3f51b5;
+    }
   }
 }
 
-.btn-primary {
-  padding: 0.75rem 1.5rem;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  border: none;
-  border-radius: 6px;
-  font-weight: 600;
-  cursor: pointer;
+section {
+  margin-bottom: 32px;
+}
 
-  &:disabled {
-    opacity: 0.7;
-    cursor: not-allowed;
+.deposit-form-card {
+  mat-card-header {
+    margin-bottom: 16px;
+  }
+}
+
+.form-row {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  align-items: flex-start;
+
+  mat-form-field {
+    flex: 1;
+    min-width: 180px;
+  }
+
+  button {
+    height: 56px;
+    // margin-top: 4px;
+  }
+}
+
+.history-card {
+  mat-card-header {
+    margin-bottom: 16px;
   }
 }
 
 .table-container {
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  overflow: hidden;
+  overflow-x: auto;
 }
 
 table {
   width: 100%;
-  border-collapse: collapse;
+
+  th {
+    font-weight: 600;
+    color: rgba(0, 0, 0, 0.87);
+  }
+
+  td {
+    color: rgba(0, 0, 0, 0.6);
+  }
+
+  .amount-cell {
+    font-weight: 500;
+    color: #4caf50;
+  }
+
+  .cumulative-cell {
+    font-weight: 600;
+    color: #3f51b5;
+  }
 }
 
-th,
-td {
-  padding: 1rem;
-  text-align: left;
-  border-bottom: 1px solid #eee;
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px;
+  color: rgba(0, 0, 0, 0.38);
+
+  mat-icon {
+    font-size: 64px;
+    width: 64px;
+    height: 64px;
+    margin-bottom: 16px;
+  }
 }
 
-th {
-  background: #f8f9fa;
-  font-weight: 600;
-  color: #333;
-}
+@media (max-width: 768px) {
+  .form-row {
+    flex-direction: column;
 
-.empty {
-  text-align: center;
-  color: #666;
-  padding: 2rem;
-}
+    mat-form-field {
+      width: 100%;
+    }
 
-.error-message {
-  background: #fee;
-  color: #c00;
-  padding: 0.75rem;
-  border-radius: 6px;
-  margin-top: 1rem;
-}
-
-.success-message {
-  background: #efe;
-  color: #060;
-  padding: 0.75rem;
-  border-radius: 6px;
-  margin-top: 1rem;
+    button {
+      width: 100%;
+    }
+  }
 }

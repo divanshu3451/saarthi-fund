@@ -1,74 +1,128 @@
 <div class="loans-page">
-  <h1>Loans</h1>
-  
-  <section class="request-loan">
-    <h2>Request New Loan</h2>
-    <div class="eligibility-card">
-      <div class="eligibility-info">
-        <span class="label">Max Eligible:</span>
-        <span class="value">{{ eligibility()?.maxEligible | currency:'INR' }}</span>
-      </div>
-      <div class="eligibility-info">
-        <span class="label">Active Loans:</span>
-        <span class="value">{{ eligibility()?.activeLoans }} / {{ eligibility()?.maxActiveLoans }}</span>
-      </div>
-    </div>
-    
-    @if (eligibility()?.eligible) {
-      <form (ngSubmit)="requestLoan()" class="loan-form">
-        <div class="form-row">
-          <div class="form-group">
-            <label>Loan Amount (₹)</label>
-            <input type="number" [(ngModel)]="loanAmount" name="amount" [max]="eligibility()?.maxEligible || 0" min="1" required />
+  <h2><mat-icon>account_balance</mat-icon> Loans</h2>
+
+  <section>
+    <mat-card class="eligibility-card" [class.eligible]="eligibility()?.eligible" [class.not-eligible]="!eligibility()?.eligible">
+      <mat-card-header>
+        <mat-icon mat-card-avatar>{{ eligibility()?.eligible ? 'check_circle' : 'cancel' }}</mat-icon>
+        <mat-card-title>Loan Eligibility</mat-card-title>
+        <mat-card-subtitle>{{ eligibility()?.eligible ? 'You are eligible for a loan' : 'Not eligible at this time' }}</mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="eligibility-stats">
+          <div class="stat-item">
+            <span class="stat-label">Your Deposits</span>
+            <span class="stat-value">{{ eligibility()?.totalDeposits | currency:'INR' }}</span>
           </div>
-          <div class="form-group">
-            <label>EMI Start Date (optional)</label>
-            <input type="date" [(ngModel)]="emiStartDate" name="emi_start_date" />
+          <div class="stat-item">
+            <span class="stat-label">Max Multiplier</span>
+            <span class="stat-value">{{ eligibility()?.maxMultiplier }}x</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Outstanding</span>
+            <span class="stat-value">{{ eligibility()?.outstanding | currency:'INR' }}</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Max Eligible</span>
+            <span class="stat-value highlight">{{ eligibility()?.maxEligible | currency:'INR' }}</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Active Loans</span>
+            <span class="stat-value">{{ eligibility()?.activeLoans }} / {{ eligibility()?.maxActiveLoans }}</span>
           </div>
         </div>
-        <button type="submit" class="btn-primary" [disabled]="loading()">
-          {{ loading() ? 'Requesting...' : 'Request Loan' }}
-        </button>
-      </form>
-    } @else {
-      <p class="not-eligible">{{ eligibility()?.reason || 'You are not eligible for a loan at this time.' }}</p>
-    }
-    
-    @if (error()) {
-      <div class="error-message">{{ error() }}</div>
-    }
-    @if (success()) {
-      <div class="success-message">{{ success() }}</div>
-    }
+        
+        @if (eligibility()?.eligible) {
+          <form (ngSubmit)="requestLoan()" class="form-row">
+            <mat-form-field appearance="outline">
+              <mat-label>Loan Amount (₹)</mat-label>
+              <input matInput type="number" [(ngModel)]="loanAmount" name="amount" [max]="eligibility()?.maxEligible || 0" min="1" required />
+              <mat-icon matPrefix>currency_rupee</mat-icon>
+              <mat-hint>Max: {{ eligibility()?.maxEligible | currency:'INR' }}</mat-hint>
+            </mat-form-field>
+            
+            <mat-form-field appearance="outline">
+              <mat-label>EMI Start Date (optional)</mat-label>
+              <input matInput type="date" [(ngModel)]="emiStartDate" name="emi_start_date" />
+              <mat-icon matPrefix>event</mat-icon>
+              <mat-hint>Leave empty to start EMI later</mat-hint>
+            </mat-form-field>
+            
+            <button mat-raised-button color="primary" type="submit" [disabled]="loading()">
+              @if (loading()) {
+                <mat-spinner diameter="20"></mat-spinner>
+              } @else {
+                <ng-container>
+                  <!-- <mat-icon>send</mat-icon> -->
+                  Request Loan
+                </ng-container>
+              }
+            </button>
+          </form>
+        } @else {
+          <div class="not-eligible-message">
+            <mat-icon>info</mat-icon>
+            <span>{{ eligibility()?.reason || 'You are not eligible for a loan at this time.' }}</span>
+          </div>
+        }
+      </mat-card-content>
+    </mat-card>
   </section>
-  
-  <section class="loans-list">
-    <h2>My Loans</h2>
-    <div class="loans-grid">
-      @for (loan of loans(); track loan.id) {
-        <a [routerLink]="['/loans', loan.id]" class="loan-card" [class.active]="loan.status === 'active'" [class.completed]="loan.status === 'completed'">
-          <div class="loan-header">
-            <span class="loan-amount">{{ loan.principal_amount | currency:'INR' }}</span>
-            <span class="loan-status" [class]="loan.status">{{ loan.status }}</span>
-          </div>
-          @if (auth.isAdmin() && loan.users_loans_user_idTousers) {
-            <div class="loan-member">{{ loan.users_loans_user_idTousers.name }}</div>
-          }
-          <div class="loan-details">
-            <div><span>Rate:</span> {{ loan.interest_rate }}%</div>
-            <div><span>Multiplier:</span> {{ loan.multiplier_at_disbursement }}x</div>
-            <div><span>Disbursed:</span> {{ loan.disbursed_at | date:'mediumDate' }}</div>
-            <div><span>Outstanding:</span> {{ loan.outstanding_principal | currency:'INR' }}</div>
-          </div>
-          @if (loan.emi_start_date) {
-            <div class="emi-info">EMI started: {{ loan.emi_start_date | date:'mediumDate' }}</div>
-          } @else {
-            <div class="emi-info pending">EMI not started</div>
-          }
-        </a>
-      } @empty {
-        <p class="empty">No loans found</p>
-      }
-    </div>
+
+  <section>
+    <h3><mat-icon>list</mat-icon> My Loans</h3>
+    @if (loans().length) {
+      <div class="loans-grid">
+        @for (loan of loans(); track loan.id) {
+          <mat-card class="loan-card" [routerLink]="['/loans', loan.id]">
+            <mat-card-header>
+              <mat-icon mat-card-avatar>receipt_long</mat-icon>
+              <mat-card-title>{{ loan.principal_amount | currency:'INR' }}</mat-card-title>
+              <mat-card-subtitle>
+                @if (auth.isAdmin() && loan.users_loans_user_idTousers) {
+                  {{ loan.users_loans_user_idTousers.name }} •
+                }
+                <mat-chip class="status-chip" [class]="loan.status">{{ loan.status }}</mat-chip>
+              </mat-card-subtitle>
+            </mat-card-header>
+            <mat-card-content>
+              <div class="loan-info">
+                <div class="loan-row">
+                  <span class="label">Interest Rate</span>
+                  <span class="value rate">{{ loan.interest_rate }}%</span>
+                </div>
+                <div class="loan-row">
+                  <span class="label">Multiplier</span>
+                  <span class="value">{{ loan.multiplier_at_disbursement }}x</span>
+                </div>
+                <div class="loan-row">
+                  <span class="label">Disbursed</span>
+                  <span class="value">{{ loan.disbursed_at | date:'mediumDate' }}</span>
+                </div>
+                <div class="loan-row">
+                  <span class="label">Outstanding</span>
+                  <span class="value outstanding">{{ loan.outstanding_principal | currency:'INR' }}</span>
+                </div>
+                <div class="loan-row">
+                  <span class="label">EMI Status</span>
+                  <span class="value">
+                    @if (loan.emi_start_date) {
+                      Started {{ loan.emi_start_date | date:'mediumDate' }}
+                    } @else {
+                      <em>Not started</em>
+                    }
+                  </span>
+                </div>
+              </div>
+            </mat-card-content>
+          </mat-card>
+        }
+      </div>
+    } @else {
+      <div class="empty-state">
+        <mat-icon>account_balance</mat-icon>
+        <span>No loans found</span>
+      </div>
+    }
   </section>
 </div>
