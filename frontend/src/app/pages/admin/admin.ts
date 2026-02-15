@@ -58,6 +58,10 @@ export class AdminComponent implements OnInit {
   bulkDeposits = signal<BulkDepositRow[]>([]);
   bulkLoading = signal(false);
 
+  // Add member form
+  newMember = { name: '', email: '', phone: '', password: '', joined_at: '' };
+  addMemberLoading = signal(false);
+
   ngOnInit() {
     this.loadData();
   }
@@ -208,6 +212,35 @@ export class AdminComponent implements OnInit {
       error: (err) => {
         this.snackBar.open(err.error?.error || 'Failed to import deposits', 'Close', { duration: 5000 });
         this.bulkLoading.set(false);
+      }
+    });
+  }
+
+  // Add member
+  addMember() {
+    if (!this.newMember.name || !this.newMember.email || !this.newMember.password) {
+      this.snackBar.open('Name, email, and password are required', 'Close', { duration: 3000 });
+      return;
+    }
+
+    this.addMemberLoading.set(true);
+
+    this.authService.adminRegisterUser({
+      name: this.newMember.name,
+      email: this.newMember.email,
+      phone: this.newMember.phone || undefined,
+      password: this.newMember.password,
+      joined_at: this.newMember.joined_at || undefined
+    }).subscribe({
+      next: (result) => {
+        this.snackBar.open(result.message, 'Close', { duration: 3000 });
+        this.newMember = { name: '', email: '', phone: '', password: '', joined_at: '' };
+        this.addMemberLoading.set(false);
+        this.loadData();
+      },
+      error: (err) => {
+        this.snackBar.open(err.error?.error || 'Failed to create user', 'Close', { duration: 5000 });
+        this.addMemberLoading.set(false);
       }
     });
   }

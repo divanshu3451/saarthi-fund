@@ -218,4 +218,66 @@ router.post('/reject/:id', authenticate, requireAdmin, async (req: AuthRequest, 
   }
 });
 
+/**
+ * @swagger
+ * /api/auth/admin/register:
+ *   post:
+ *     summary: Register a new user directly (Admin only, auto-approved)
+ *     tags: [Auth]
+ *     security: [{ bearerAuth: [] }]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [name, email, password]
+ *             properties:
+ *               name: { type: string }
+ *               email: { type: string, format: email }
+ *               phone: { type: string }
+ *               password: { type: string, minLength: 6 }
+ *               joined_at: { type: string, format: date, description: 'Optional join date for backdating' }
+ *     responses:
+ *       201: { description: User created and activated }
+ *       400: { description: Email already registered }
+ *       403: { description: Admin access required }
+ */
+router.post('/admin/register', authenticate, requireAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    const { name, email, phone, password, joined_at } = req.body;
+
+    if (!name || !email || !password) {
+      return res.status(400).json({ error: 'Name, email, and password are required' });
+    }
+
+    const existing = await prisma.users.findUnique({ where: { email } });
+    if (existing) {
+      return res.status(400).json({ error: 'Email already registered' });
+    }
+
+    const password_hash = await bcrypt.hash(password, 10);
+    const joinDate = joined_at ? new Date(joined_at) : new Date();
+    
+    const user = await prisma.users.create({
+      data: {
+        name,
+        email,
+        phone,
+        password_hash,
+        status: 'active',
+        joined_at: joinDate,
+        approved_by: req.user!.id,
+        approved_at: new Date()
+      },
+      select: { id: true, name: true, email: true, phone: true, status: true, joined_at: true }
+    });
+
+    res.status(201).json({ message: 'User created and activated', user });
+  } catch (error) {
+    console.error('Admin register error:', error);
+    res.status(500).json({ error: 'Failed to create user' });
+  }
+});
+
 export default router;

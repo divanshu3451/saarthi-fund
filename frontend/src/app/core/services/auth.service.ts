@@ -81,4 +81,8 @@ export class AuthService {
   rejectUser(id: string, reason: string) {
     return this.http.post<{ message: string; user: User }>(`${this.apiUrl}/reject/${id}`, { reason });
   }
+
+  adminRegisterUser(data: { name: string; email: string; phone?: string; password: string; joined_at?: string }) {
+    return this.http.post<{ message: string; user: User }>(`${this.apiUrl}/admin/register`, data);
+  }
 }

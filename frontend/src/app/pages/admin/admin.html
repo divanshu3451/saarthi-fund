@@ -43,7 +43,63 @@
     <mat-tab label="Members">
       <ng-template matTabContent>
         <div style="padding: 24px 0;">
-          <mat-card>
+          <mat-card class="add-member-card">
+            <mat-card-header>
+              <mat-icon mat-card-avatar>person_add</mat-icon>
+              <mat-card-title>Add New Member</mat-card-title>
+              <mat-card-subtitle>Register a new member directly (auto-approved)</mat-card-subtitle>
+            </mat-card-header>
+            <mat-card-content>
+              <form (ngSubmit)="addMember()" class="add-member-form">
+                <mat-form-field appearance="outline">
+                  <mat-label>Name</mat-label>
+                  <input matInput [(ngModel)]="newMember.name" name="name" required />
+                  <mat-icon matPrefix>person</mat-icon>
+                </mat-form-field>
+                
+                <mat-form-field appearance="outline">
+                  <mat-label>Email</mat-label>
+                  <input matInput type="email" [(ngModel)]="newMember.email" name="email" required />
+                  <mat-icon matPrefix>email</mat-icon>
+                </mat-form-field>
+                
+                <mat-form-field appearance="outline">
+                  <mat-label>Phone</mat-label>
+                  <input matInput [(ngModel)]="newMember.phone" name="phone" />
+                  <mat-icon matPrefix>phone</mat-icon>
+                </mat-form-field>
+                
+                <mat-form-field appearance="outline">
+                  <mat-label>Password</mat-label>
+                  <input matInput type="password" [(ngModel)]="newMember.password" name="password" required />
+                  <mat-icon matPrefix>lock</mat-icon>
+                </mat-form-field>
+                
+                <mat-form-field appearance="outline">
+                  <mat-label>Join Date (optional)</mat-label>
+                  <input matInput type="date" [(ngModel)]="newMember.joined_at" name="joined_at" />
+                  <mat-icon matPrefix>event</mat-icon>
+                  <mat-hint>Leave empty for today</mat-hint>
+                </mat-form-field>
+                
+                <button mat-raised-button color="primary" type="submit" [disabled]="addMemberLoading()">
+                  @if (addMemberLoading()) {
+                    <mat-spinner diameter="20"></mat-spinner>
+                  } @else {
+                    <ng-container>
+                      <mat-icon>person_add</mat-icon>
+                      Add Member
+                    </ng-container>
+                  }
+                </button>
+              </form>
+            </mat-card-content>
+          </mat-card>
+          
+          <mat-card style="margin-top: 24px;">
+            <mat-card-header>
+              <mat-card-title>All Members</mat-card-title>
+            </mat-card-header>
             <mat-card-content>
               <table mat-table [dataSource]="members()">
                 <ng-container matColumnDef="name">
