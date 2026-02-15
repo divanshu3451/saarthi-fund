@@ -43,12 +43,12 @@ export class AuthService {
     }
   }
 
-  register(data: { name: string; email: string; phone?: string; password: string }) {
+  register(data: { name: string; phone: string; email?: string; password: string }) {
     return this.http.post<{ message: string; user: User }>(`${this.apiUrl}/register`, data);
   }
 
-  login(email: string, password: string) {
-    return this.http.post<LoginResponse>(`${this.apiUrl}/login`, { email, password });
+  login(phone: string, password: string) {
+    return this.http.post<LoginResponse>(`${this.apiUrl}/login`, { phone, password });
   }
 
   setSession(response: LoginResponse) {
@@ -82,7 +82,7 @@ export class AuthService {
     return this.http.post<{ message: string; user: User }>(`${this.apiUrl}/reject/${id}`, { reason });
   }
 
-  adminRegisterUser(data: { name: string; email: string; phone?: string; password: string; joined_at?: string }) {
+  adminRegisterUser(data: { name: string; phone: string; email?: string; password: string; joined_at?: string }) {
     return this.http.post<{ message: string; user: User }>(`${this.apiUrl}/admin/register`, data);
   }
 

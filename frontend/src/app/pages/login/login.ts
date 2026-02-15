@@ -23,7 +23,7 @@ export class LoginComponent {
   private authService = inject(AuthService);
   private router = inject(Router);
 
-  email = '';
+  phone = '';
   password = '';
   hidePassword = true;
   loading = signal(false);
@@ -33,7 +33,7 @@ export class LoginComponent {
     this.loading.set(true);
     this.error.set('');
 
-    this.authService.login(this.email, this.password).subscribe({
+    this.authService.login(this.phone, this.password).subscribe({
       next: (response) => {
         this.authService.setSession(response);
         this.router.navigate(['/dashboard']);

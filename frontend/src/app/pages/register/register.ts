@@ -37,7 +37,7 @@ export class RegisterComponent {
     this.error.set('');
     this.success.set('');
 
-    this.authService.register({ name: this.name, email: this.email, phone: this.phone, password: this.password }).subscribe({
+    this.authService.register({ name: this.name, phone: this.phone, email: this.email || undefined, password: this.password }).subscribe({
       next: () => {
         this.success.set('Registration successful! Please wait for admin approval.');
         this.loading.set(false);

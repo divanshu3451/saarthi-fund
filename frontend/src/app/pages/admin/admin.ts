@@ -59,7 +59,7 @@ export class AdminComponent implements OnInit {
   bulkLoading = signal(false);
 
   // Add member form
-  newMember = { name: '', email: '', phone: '', password: '', joined_at: '' };
+  newMember = { name: '', phone: '', email: '', password: '', joined_at: '' };
   addMemberLoading = signal(false);
 
   ngOnInit() {
@@ -218,8 +218,8 @@ export class AdminComponent implements OnInit {
 
   // Add member
   addMember() {
-    if (!this.newMember.name || !this.newMember.email || !this.newMember.password) {
-      this.snackBar.open('Name, email, and password are required', 'Close', { duration: 3000 });
+    if (!this.newMember.name || !this.newMember.phone || !this.newMember.password) {
+      this.snackBar.open('Name, phone, and password are required', 'Close', { duration: 3000 });
       return;
     }
 
@@ -227,14 +227,14 @@ export class AdminComponent implements OnInit {
 
     this.authService.adminRegisterUser({
       name: this.newMember.name,
-      email: this.newMember.email,
-      phone: this.newMember.phone || undefined,
+      phone: this.newMember.phone,
+      email: this.newMember.email || undefined,
       password: this.newMember.password,
       joined_at: this.newMember.joined_at || undefined
     }).subscribe({
       next: (result) => {
         this.snackBar.open(result.message, 'Close', { duration: 3000 });
-        this.newMember = { name: '', email: '', phone: '', password: '', joined_at: '' };
+        this.newMember = { name: '', phone: '', email: '', password: '', joined_at: '' };
         this.addMemberLoading.set(false);
         this.loadData();
       },
