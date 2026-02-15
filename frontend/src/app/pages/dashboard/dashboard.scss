@@ -2,6 +2,11 @@
   h1 {
     margin-bottom: 24px;
     color: rgba(0, 0, 0, 0.87);
+    transition: color 0.3s ease;
+
+    :host-context(body.dark-theme) & {
+      color: rgba(255, 255, 255, 0.87);
+    }
   }
 
   h2 {
@@ -12,6 +17,11 @@
     color: rgba(0, 0, 0, 0.6);
     font-size: 1.1rem;
     font-weight: 500;
+    transition: color 0.3s ease;
+
+    :host-context(body.dark-theme) & {
+      color: rgba(255, 255, 255, 0.6);
+    }
   }
 }
 
@@ -51,6 +61,7 @@ mat-card {
   align-items: center;
   justify-content: center;
   background: #e8eaf6;
+  transition: background-color 0.3s ease;
 
   mat-icon {
     color: #3f51b5;
@@ -59,21 +70,41 @@ mat-card {
   &.primary {
     background: #e8eaf6;
     mat-icon { color: #3f51b5; }
+
+    :host-context(body.dark-theme) & {
+      background: rgba(128, 203, 196, 0.15);
+      mat-icon { color: #80cbc4; }
+    }
   }
 
   &.accent {
     background: #fce4ec;
     mat-icon { color: #e91e63; }
+
+    :host-context(body.dark-theme) & {
+      background: rgba(233, 30, 99, 0.15);
+      mat-icon { color: #f48fb1; }
+    }
   }
 
   &.success {
     background: #e8f5e9;
     mat-icon { color: #4caf50; }
+
+    :host-context(body.dark-theme) & {
+      background: rgba(76, 175, 80, 0.15);
+      mat-icon { color: #81c784; }
+    }
   }
 
   &.warn {
     background: #fff3e0;
     mat-icon { color: #ff9800; }
+
+    :host-context(body.dark-theme) & {
+      background: rgba(255, 152, 0, 0.15);
+      mat-icon { color: #ffb74d; }
+    }
   }
 }
 
@@ -86,12 +117,22 @@ mat-card {
 .stat-label {
   font-size: 0.875rem;
   color: rgba(0, 0, 0, 0.6);
+  transition: color 0.3s ease;
+
+  :host-context(body.dark-theme) & {
+    color: rgba(255, 255, 255, 0.6);
+  }
 }
 
 .stat-value {
   font-size: 1.25rem;
   font-weight: 600;
   color: rgba(0, 0, 0, 0.87);
+  transition: color 0.3s ease;
+
+  :host-context(body.dark-theme) & {
+    color: rgba(255, 255, 255, 0.87);
+  }
 }
 
 .actions-grid {
@@ -124,6 +165,11 @@ mat-card {
     span {
       font-weight: 500;
       color: rgba(0, 0, 0, 0.87);
+      transition: color 0.3s ease;
+
+      :host-context(body.dark-theme) & {
+        color: rgba(255, 255, 255, 0.87);
+      }
     }
   }
 }

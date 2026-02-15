@@ -36,7 +36,10 @@
   gap: 8px;
   padding: 8px 16px;
   color: rgba(0, 0, 0, 0.6);
-  font-size: 0.875rem;
+
+  :host-context(body.dark-theme) & {
+    color: rgba(255, 255, 255, 0.7);
+  }
 }
 
 // Desktop only elements
@@ -78,13 +81,17 @@
   background: white;
   z-index: 1000;
   transform: translateX(100%);
-  transition: transform 0.3s ease;
+  transition: transform 0.3s ease, background-color 0.3s ease;
   box-shadow: -4px 0 20px rgba(0, 0, 0, 0.15);
   display: flex;
   flex-direction: column;
 
   &.open {
     transform: translateX(0);
+  }
+
+  :host-context(body.dark-theme) & {
+    background: #1e1e1e;
   }
 }
 
@@ -128,6 +135,14 @@
     &.active {
       background: rgba(102, 126, 234, 0.1);
       color: #667eea;
+    }
+
+    :host-context(body.dark-theme) & {
+      color: rgba(255, 255, 255, 0.87);
+
+      &.active {
+        background: rgba(102, 126, 234, 0.2);
+      }
     }
   }
 }

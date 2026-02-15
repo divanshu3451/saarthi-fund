@@ -6,6 +6,11 @@
   
   <span class="spacer"></span>
   
+  <!-- Theme Toggle (always visible) -->
+  <button mat-icon-button (click)="toggleTheme()" [matTooltip]="theme.isDarkMode() ? 'Switch to light mode' : 'Switch to dark mode'">
+    <mat-icon>{{ theme.isDarkMode() ? 'light_mode' : 'dark_mode' }}</mat-icon>
+  </button>
+  
   @if (auth.isLoggedIn()) {
     <!-- Desktop Navigation -->
     <nav class="nav-links desktop-only">

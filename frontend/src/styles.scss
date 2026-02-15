@@ -3,22 +3,45 @@
 // Include the common styles for Angular Material
 @include mat.core();
 
-// Define custom theme
-$primary: mat.m2-define-palette(mat.$m2-indigo-palette);
-$accent: mat.m2-define-palette(mat.$m2-pink-palette, A200, A100, A400);
-$warn: mat.m2-define-palette(mat.$m2-red-palette);
+// Define palettes for light theme
+$primary-light: mat.m2-define-palette(mat.$m2-indigo-palette);
+$accent-light: mat.m2-define-palette(mat.$m2-pink-palette, A200, A100, A400);
+$warn-light: mat.m2-define-palette(mat.$m2-red-palette);
 
-$theme: mat.m2-define-light-theme((
+// Define palettes for dark theme - using gray/slate tones
+$primary-dark: mat.m2-define-palette(mat.$m2-gray-palette, 700, 600, 800);
+$accent-dark: mat.m2-define-palette(mat.$m2-teal-palette, A200, A100, A400);
+$warn-dark: mat.m2-define-palette(mat.$m2-red-palette, 300);
+
+// Light theme
+$light-theme: mat.m2-define-light-theme((
   color: (
-    primary: $primary,
-    accent: $accent,
-    warn: $warn,
+    primary: $primary-light,
+    accent: $accent-light,
+    warn: $warn-light,
   ),
   typography: mat.m2-define-typography-config(),
   density: 0,
 ));
 
-@include mat.all-component-themes($theme);
+// Dark theme with gray primary
+$dark-theme: mat.m2-define-dark-theme((
+  color: (
+    primary: $primary-dark,
+    accent: $accent-dark,
+    warn: $warn-dark,
+  ),
+  typography: mat.m2-define-typography-config(),
+  density: 0,
+));
+
+// Apply light theme by default
+@include mat.all-component-themes($light-theme);
+
+// Apply dark theme when .dark-theme class is on body
+body.dark-theme {
+  @include mat.all-component-colors($dark-theme);
+}
 
 * {
   margin: 0;
@@ -31,6 +54,12 @@ body {
   background: #fafafa;
   color: rgba(0, 0, 0, 0.87);
   line-height: 1.6;
+  transition: background-color 0.3s ease, color 0.3s ease;
+
+  &.dark-theme {
+    background: #121212;
+    color: rgba(255, 255, 255, 0.87);
+  }
 }
 
 html, body {
@@ -40,6 +69,7 @@ html, body {
 // Global Material overrides
 .mat-mdc-card {
   margin-bottom: 16px;
+  transition: background-color 0.3s ease;
 }
 
 .mat-mdc-form-field {
@@ -52,4 +82,171 @@ html, body {
 
 .spacer {
   flex: 1 1 auto;
+}
+
+// Dark theme specific overrides
+body.dark-theme {
+  // Toolbar/Navbar - dark gray instead of blue
+  .mat-toolbar.mat-primary {
+    background: #1e1e1e;
+    color: rgba(255, 255, 255, 0.87);
+  }
+
+  // Primary buttons - dark gray
+  .mat-mdc-raised-button.mat-primary,
+  .mat-mdc-unelevated-button.mat-primary {
+    background-color: #424242 !important;
+    color: white !important;
+
+    &:hover {
+      background-color: #616161 !important;
+    }
+  }
+
+  // Stroked buttons
+  .mat-mdc-outlined-button.mat-primary {
+    border-color: rgba(255, 255, 255, 0.3) !important;
+    color: rgba(255, 255, 255, 0.87) !important;
+  }
+
+  // FAB buttons
+  .mat-mdc-mini-fab.mat-primary {
+    background-color: #424242 !important;
+    color: white !important;
+  }
+
+  // Cards
+  .mat-mdc-card {
+    background: #1e1e1e;
+    color: rgba(255, 255, 255, 0.87);
+  }
+
+  // Card titles and subtitles
+  .mat-mdc-card-title {
+    color: rgba(255, 255, 255, 0.87) !important;
+  }
+
+  .mat-mdc-card-subtitle {
+    color: rgba(255, 255, 255, 0.6) !important;
+  }
+
+  // Tables
+  .mat-mdc-table {
+    background: transparent;
+  }
+
+  .mat-mdc-header-cell {
+    color: rgba(255, 255, 255, 0.87) !important;
+  }
+
+  .mat-mdc-cell {
+    color: rgba(255, 255, 255, 0.7) !important;
+  }
+
+  // Expansion panels
+  .mat-expansion-panel {
+    background: #1e1e1e !important;
+    color: rgba(255, 255, 255, 0.87);
+  }
+
+  .mat-expansion-panel-header-title {
+    color: rgba(255, 255, 255, 0.87) !important;
+  }
+
+  .mat-expansion-panel-header-description {
+    color: rgba(255, 255, 255, 0.6) !important;
+  }
+
+  // Form fields
+  .mat-mdc-form-field {
+    .mdc-text-field--outlined:not(.mdc-text-field--disabled) {
+      .mdc-notched-outline__leading,
+      .mdc-notched-outline__notch,
+      .mdc-notched-outline__trailing {
+        border-color: rgba(255, 255, 255, 0.3) !important;
+      }
+    }
+
+    .mat-mdc-input-element {
+      color: rgba(255, 255, 255, 0.87) !important;
+    }
+
+    .mat-mdc-floating-label {
+      color: rgba(255, 255, 255, 0.6) !important;
+    }
+
+    .mat-mdc-form-field-hint {
+      color: rgba(255, 255, 255, 0.5) !important;
+    }
+  }
+
+  // Select
+  .mat-mdc-select-value {
+    color: rgba(255, 255, 255, 0.87) !important;
+  }
+
+  .mat-mdc-select-arrow {
+    color: rgba(255, 255, 255, 0.6) !important;
+  }
+
+  // Tabs
+  .mat-mdc-tab:not(.mat-mdc-tab-disabled) {
+    color: rgba(255, 255, 255, 0.7) !important;
+
+    &.mdc-tab--active {
+      color: rgba(255, 255, 255, 1) !important;
+    }
+  }
+
+  .mat-mdc-tab-header {
+    border-bottom-color: rgba(255, 255, 255, 0.12) !important;
+  }
+
+  // Dialogs
+  .mat-mdc-dialog-container {
+    background: #1e1e1e;
+  }
+
+  // Snackbar
+  .mat-mdc-snack-bar-container {
+    background: #333;
+  }
+
+  // Menu
+  .mat-mdc-menu-panel {
+    background: #2d2d2d !important;
+  }
+
+  .mat-mdc-menu-item {
+    color: rgba(255, 255, 255, 0.87) !important;
+  }
+
+  // Divider
+  .mat-divider {
+    border-color: rgba(255, 255, 255, 0.12) !important;
+  }
+
+  // Icons in cards
+  .mat-mdc-card-avatar {
+    color: #80cbc4 !important; // Teal accent for dark mode
+  }
+
+  // Checkbox
+  .mat-mdc-checkbox .mdc-checkbox__background {
+    border-color: rgba(255, 255, 255, 0.6) !important;
+  }
+
+  // Text colors for custom styles
+  h1, h2, h3, h4, h5, h6 {
+    color: rgba(255, 255, 255, 0.87);
+  }
+
+  // Custom amount/value colors
+  .amount-cell {
+    color: #81c784 !important;
+  }
+
+  .cumulative-cell {
+    color: #80cbc4 !important;
+  }
 }

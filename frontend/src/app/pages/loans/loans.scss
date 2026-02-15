@@ -5,9 +5,18 @@
     gap: 8px;
     margin-bottom: 24px;
     color: rgba(0, 0, 0, 0.87);
+    transition: color 0.3s ease;
 
     mat-icon {
       color: #3f51b5;
+
+      :host-context(body.dark-theme) & {
+        color: #80cbc4;
+      }
+    }
+
+    :host-context(body.dark-theme) & {
+      color: rgba(255, 255, 255, 0.87);
     }
   }
 
@@ -19,6 +28,11 @@
     color: rgba(0, 0, 0, 0.6);
     font-size: 1.1rem;
     font-weight: 500;
+    transition: color 0.3s ease;
+
+    :host-context(body.dark-theme) & {
+      color: rgba(255, 255, 255, 0.6);
+    }
   }
 }
 
@@ -54,21 +68,40 @@ section {
   padding: 12px;
   background: #f5f5f5;
   border-radius: 8px;
+  transition: background-color 0.3s ease;
+
+  :host-context(body.dark-theme) & {
+    background: rgba(255, 255, 255, 0.05);
+  }
 
   .stat-label {
     font-size: 0.75rem;
     color: rgba(0, 0, 0, 0.6);
     text-transform: uppercase;
     letter-spacing: 0.5px;
+    transition: color 0.3s ease;
+
+    :host-context(body.dark-theme) & {
+      color: rgba(255, 255, 255, 0.6);
+    }
   }
 
   .stat-value {
     font-size: 1.25rem;
     font-weight: 600;
     color: rgba(0, 0, 0, 0.87);
+    transition: color 0.3s ease;
 
     &.highlight {
       color: #4caf50;
+
+      :host-context(body.dark-theme) & {
+        color: #81c784;
+      }
+    }
+
+    :host-context(body.dark-theme) & {
+      color: rgba(255, 255, 255, 0.87);
     }
   }
 }
@@ -86,7 +119,6 @@ section {
 
   button {
     height: 56px;
-    // margin-top: 4px;
   }
 }
 
@@ -98,6 +130,12 @@ section {
   background: #ffebee;
   border-radius: 8px;
   color: #c62828;
+  transition: background-color 0.3s ease;
+
+  :host-context(body.dark-theme) & {
+    background: rgba(198, 40, 40, 0.2);
+    color: #ef9a9a;
+  }
 
   mat-icon {
     font-size: 24px;
@@ -143,18 +181,36 @@ section {
 
     .label {
       color: rgba(0, 0, 0, 0.6);
+      transition: color 0.3s ease;
+
+      :host-context(body.dark-theme) & {
+        color: rgba(255, 255, 255, 0.6);
+      }
     }
 
     .value {
       font-weight: 500;
       color: rgba(0, 0, 0, 0.87);
+      transition: color 0.3s ease;
+
+      :host-context(body.dark-theme) & {
+        color: rgba(255, 255, 255, 0.87);
+      }
 
       &.outstanding {
         color: #f44336;
+
+        :host-context(body.dark-theme) & {
+          color: #ef5350;
+        }
       }
 
       &.rate {
         color: #3f51b5;
+
+        :host-context(body.dark-theme) & {
+          color: #80cbc4;
+        }
       }
     }
   }
@@ -164,16 +220,31 @@ section {
   &.active {
     background: #e8f5e9 !important;
     color: #2e7d32 !important;
+
+    :host-context(body.dark-theme) & {
+      background: rgba(46, 125, 50, 0.2) !important;
+      color: #81c784 !important;
+    }
   }
 
   &.completed {
     background: #e3f2fd !important;
     color: #1565c0 !important;
+
+    :host-context(body.dark-theme) & {
+      background: rgba(21, 101, 192, 0.2) !important;
+      color: #64b5f6 !important;
+    }
   }
 
   &.defaulted {
     background: #ffebee !important;
     color: #c62828 !important;
+
+    :host-context(body.dark-theme) & {
+      background: rgba(198, 40, 40, 0.2) !important;
+      color: #ef9a9a !important;
+    }
   }
 }
 
@@ -184,6 +255,11 @@ section {
   justify-content: center;
   padding: 48px;
   color: rgba(0, 0, 0, 0.38);
+  transition: color 0.3s ease;
+
+  :host-context(body.dark-theme) & {
+    color: rgba(255, 255, 255, 0.38);
+  }
 
   mat-icon {
     font-size: 64px;
