@@ -280,4 +280,131 @@ router.post('/admin/register', authenticate, requireAdmin, async (req: AuthReque
   }
 });
 
+/**
+ * @swagger
+ * /api/auth/admin/delete/{id}:
+ *   delete:
+ *     summary: Soft delete a user (set status to inactive)
+ *     tags: [Auth]
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *     responses:
+ *       200: { description: User deactivated }
+ *       400: { description: Cannot delete admin users }
+ *       403: { description: Admin access required }
+ *       404: { description: User not found }
+ */
+router.delete('/admin/delete/:id', authenticate, requireAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.params.id as string;
+
+    const user = await prisma.users.findUnique({ where: { id: userId } });
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    if (user.role === 'admin') {
+      return res.status(400).json({ error: 'Cannot delete admin users' });
+    }
+
+    // Soft delete - set status to inactive
+    await prisma.users.update({
+      where: { id: userId },
+      data: { status: 'inactive' }
+    });
+
+    res.json({ message: `User ${user.name} has been deactivated. Their records are preserved.` });
+  } catch (error) {
+    console.error('Delete user error:', error);
+    res.status(500).json({ error: 'Failed to delete user' });
+  }
+});
+
+/**
+ * @swagger
+ * /api/auth/admin/purge/{id}:
+ *   delete:
+ *     summary: Permanently delete a user and ALL their data (IRREVERSIBLE)
+ *     tags: [Auth]
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [confirmName]
+ *             properties:
+ *               confirmName: { type: string, description: 'Must match user name exactly' }
+ *     responses:
+ *       200: { description: User permanently deleted }
+ *       400: { description: Confirmation failed or has active loans }
+ *       403: { description: Admin access required }
+ *       404: { description: User not found }
+ */
+router.delete('/admin/purge/:id', authenticate, requireAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.params.id as string;
+    const { confirmName } = req.body;
+
+    const user = await prisma.users.findUnique({ where: { id: userId } });
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    if (user.role === 'admin') {
+      return res.status(400).json({ error: 'Cannot delete admin users' });
+    }
+
+    // Require exact name match for confirmation
+    if (confirmName !== user.name) {
+      return res.status(400).json({ error: 'Confirmation name does not match. Please type the exact user name.' });
+    }
+
+    // Check for active loans
+    const activeLoans = await prisma.loans.count({
+      where: { user_id: userId, status: 'active' }
+    });
+    if (activeLoans > 0) {
+      return res.status(400).json({ error: 'Cannot permanently delete user with active loans. Deactivate or close loans first.' });
+    }
+
+    // Delete in order due to foreign key constraints
+    // 1. Delete payments
+    await prisma.payments.deleteMany({ where: { user_id: userId } });
+    
+    // 2. Delete EMI schedules and pre-EMI interest for user's loans
+    const userLoans = await prisma.loans.findMany({ where: { user_id: userId }, select: { id: true } });
+    const loanIds = userLoans.map(l => l.id);
+    
+    if (loanIds.length > 0) {
+      await prisma.emi_schedule.deleteMany({ where: { loan_id: { in: loanIds } } });
+      await prisma.pre_emi_interest.deleteMany({ where: { loan_id: { in: loanIds } } });
+    }
+    
+    // 3. Delete loans
+    await prisma.loans.deleteMany({ where: { user_id: userId } });
+    
+    // 4. Delete deposits
+    await prisma.deposits.deleteMany({ where: { user_id: userId } });
+    
+    // 5. Delete user
+    await prisma.users.delete({ where: { id: userId } });
+
+    res.json({ message: `User ${user.name} and all their data have been permanently deleted.` });
+  } catch (error) {
+    console.error('Purge user error:', error);
+    res.status(500).json({ error: 'Failed to permanently delete user' });
+  }
+});
+
 export default router;

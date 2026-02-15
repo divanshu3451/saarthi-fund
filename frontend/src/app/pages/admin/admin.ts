@@ -47,7 +47,7 @@ export class AdminComponent implements OnInit {
   brackets = signal<InterestBracket[]>([]);
   editingBracket = signal<InterestBracket | null>(null);
 
-  memberColumns = ['name', 'email', 'phone', 'status', 'joined_at'];
+  memberColumns = ['name', 'email', 'phone', 'status', 'joined_at', 'actions'];
   bracketColumns = ['min_multiplier', 'max_multiplier', 'interest_rate', 'is_active', 'actions'];
   bulkDepositColumns = ['member_month', 'amount', 'deposit_date', 'notes', 'actions'];
 
@@ -241,6 +241,53 @@ export class AdminComponent implements OnInit {
       error: (err) => {
         this.snackBar.open(err.error?.error || 'Failed to create user', 'Close', { duration: 5000 });
         this.addMemberLoading.set(false);
+      }
+    });
+  }
+
+  deleteMember(member: any) {
+    if (!confirm(`Are you sure you want to deactivate ${member.name}? They will no longer be able to login, but their deposit and loan records will be preserved.`)) {
+      return;
+    }
+
+    this.authService.deleteUser(member.id).subscribe({
+      next: (result) => {
+        this.snackBar.open(result.message, 'Close', { duration: 3000 });
+        this.loadData();
+      },
+      error: (err) => {
+        this.snackBar.open(err.error?.error || 'Failed to deactivate user', 'Close', { duration: 5000 });
+      }
+    });
+  }
+
+  purgeMember(member: any) {
+    const confirmName = prompt(
+      `⚠️ PERMANENT DELETE ⚠️\n\n` +
+      `This will permanently delete ${member.name} and ALL their data:\n` +
+      `- All deposits\n` +
+      `- All loans\n` +
+      `- All payment history\n\n` +
+      `This action CANNOT be undone!\n\n` +
+      `To confirm, type the user's name exactly: "${member.name}"`
+    );
+
+    if (confirmName === null) {
+      return; // User cancelled
+    }
+
+    if (confirmName !== member.name) {
+      this.snackBar.open('Name does not match. Deletion cancelled.', 'Close', { duration: 5000 });
+      return;
+    }
+
+    this.authService.purgeUser(member.id, confirmName).subscribe({
+      next: (result) => {
+        this.snackBar.open(result.message, 'Close', { duration: 5000 });
+        this.loadData();
+      },
+      error: (err) => {
+        this.snackBar.open(err.error?.error || 'Failed to delete user', 'Close', { duration: 5000 });
       }
     });
   }

@@ -85,4 +85,12 @@ export class AuthService {
   adminRegisterUser(data: { name: string; email: string; phone?: string; password: string; joined_at?: string }) {
     return this.http.post<{ message: string; user: User }>(`${this.apiUrl}/admin/register`, data);
   }
+
+  deleteUser(id: string) {
+    return this.http.delete<{ message: string }>(`${this.apiUrl}/admin/delete/${id}`);
+  }
+
+  purgeUser(id: string, confirmName: string) {
+    return this.http.delete<{ message: string }>(`${this.apiUrl}/admin/purge/${id}`, { body: { confirmName } });
+  }
 }
