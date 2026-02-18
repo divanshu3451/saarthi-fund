@@ -9,6 +9,7 @@ import depositRoutes from './routes/deposits';
 import loanRoutes from './routes/loans';
 import paymentRoutes from './routes/payments';
 import adminRoutes from './routes/admin';
+import interestRoutes from './routes/interest';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -39,6 +40,7 @@ app.use('/api/deposits', depositRoutes);
 app.use('/api/loans', loanRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/interest', interestRoutes);
 
 // Health check
 app.get('/health', (req, res) => {

@@ -15,8 +15,9 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatDialogModule } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatExpansionModule } from '@angular/material/expansion';
 import { AuthService, User } from '../../core/services/auth.service';
-import { ApiService, InterestBracket, FundSetting } from '../../core/services/api.service';
+import { ApiService, InterestBracket, FundSetting, PoolSnapshot, MonthlyInterest, EmergencyFund } from '../../core/services/api.service';
 
 interface BulkDepositRow {
   amount: number;
@@ -32,7 +33,7 @@ interface BulkDepositRow {
     FormsModule, DatePipe, CurrencyPipe, MatCardModule, MatTabsModule, MatFormFieldModule,
     MatInputModule, MatSelectModule, MatButtonModule, MatIconModule, MatTableModule,
     MatChipsModule, MatCheckboxModule, MatProgressSpinnerModule,
-    MatSnackBarModule, MatDialogModule, MatTooltipModule
+    MatSnackBarModule, MatDialogModule, MatTooltipModule, MatExpansionModule
   ],
   templateUrl: './admin.html',
   styleUrl: './admin.scss'
@@ -63,6 +64,28 @@ export class AdminComponent implements OnInit {
   newMember = { name: '', phone: '', email: '', password: '', joined_at: '' };
   addMemberLoading = signal(false);
 
+  // Interest Distribution
+  poolSnapshots = signal<PoolSnapshot[]>([]);
+  interestEntries = signal<MonthlyInterest[]>([]);
+  emergencyFund = signal<EmergencyFund | null>(null);
+  memberInterestSummary = signal<{ id: string; name: string; total_interest_earned: number; entries_count: number }[]>([]);
+  
+  snapshotColumns = ['fund_month', 'month_year', 'total_pool_amount', 'total_pool_units', 'actions'];
+  interestColumns = ['earned_month', 'source', 'description', 'amount', 'pool_source_month'];
+  memberInterestColumns = ['name', 'total_interest_earned', 'entries_count'];
+
+  newSnapshot = { fund_month: 1, month_year: '' };
+  newInterest = {
+    earned_month: 1,
+    source: 'bank_interest' as 'loan_interest' | 'bank_interest' | 'other',
+    source_description: '',
+    pool_source_month: 1,
+    amount: 0,
+    loan_id: ''
+  };
+  interestLoading = signal(false);
+  loans = signal<any[]>([]);
+
   ngOnInit() {
     this.loadData();
   }
@@ -72,6 +95,15 @@ export class AdminComponent implements OnInit {
     this.api.getMembers().subscribe(data => this.members.set(data));
     this.api.getSettings().subscribe(data => this.settings.set(data));
     this.api.getInterestBrackets().subscribe(data => this.brackets.set(data));
+    this.loadInterestData();
+  }
+
+  loadInterestData() {
+    this.api.getPoolSnapshots().subscribe(data => this.poolSnapshots.set(data));
+    this.api.getInterestEntries().subscribe(data => this.interestEntries.set(data));
+    this.api.getEmergencyFund().subscribe(data => this.emergencyFund.set(data));
+    this.api.getMemberInterestSummary().subscribe(data => this.memberInterestSummary.set(data));
+    this.api.getLoans().subscribe(data => this.loans.set(data));
   }
 
   approveUser(id: string) {
@@ -138,20 +170,33 @@ export class AdminComponent implements OnInit {
   // Bulk deposit methods
   addBulkRow() {
     const today = new Date().toISOString().split('T')[0];
-    const lastMonth = this.bulkDeposits().length > 0 
-      ? Math.max(...this.bulkDeposits().map(d => d.member_month)) + 1 
+    const rows = this.bulkDeposits();
+    const lastMonth = rows.length > 0 
+      ? Math.max(...rows.map(d => d.member_month)) + 1 
       : 1;
     
-    this.bulkDeposits.update(rows => [...rows, {
+    const newRow: BulkDepositRow = {
       amount: 300,
       member_month: lastMonth,
       deposit_date: today,
       notes: ''
-    }]);
+    };
+
+    // Insert and sort by deposit_date
+    this.bulkDeposits.update(existing => 
+      [...existing, newRow].sort((a, b) => a.deposit_date.localeCompare(b.deposit_date))
+    );
   }
 
   removeBulkRow(index: number) {
     this.bulkDeposits.update(rows => rows.filter((_, i) => i !== index));
+  }
+
+  // Re-sort rows when deposit_date changes
+  sortBulkRows() {
+    this.bulkDeposits.update(rows => 
+      [...rows].sort((a, b) => a.deposit_date.localeCompare(b.deposit_date))
+    );
   }
 
   generateBulkRows() {
@@ -307,5 +352,70 @@ export class AdminComponent implements OnInit {
         this.snackBar.open(err.error?.error || 'Failed to delete user', 'Close', { duration: 5000 });
       }
     });
+  }
+
+  // Interest Distribution Methods
+  createSnapshot() {
+    if (!this.newSnapshot.fund_month || !this.newSnapshot.month_year) {
+      this.snackBar.open('Please fill in fund month and month/year', 'Close', { duration: 3000 });
+      return;
+    }
+
+    this.interestLoading.set(true);
+    this.api.createPoolSnapshot(this.newSnapshot.fund_month, this.newSnapshot.month_year).subscribe({
+      next: () => {
+        this.snackBar.open('Pool snapshot created!', 'Close', { duration: 3000 });
+        this.newSnapshot = { fund_month: this.newSnapshot.fund_month + 1, month_year: '' };
+        this.loadInterestData();
+        this.interestLoading.set(false);
+      },
+      error: (err) => {
+        this.snackBar.open(err.error?.error || 'Failed to create snapshot', 'Close', { duration: 5000 });
+        this.interestLoading.set(false);
+      }
+    });
+  }
+
+  addInterest() {
+    if (!this.newInterest.amount || !this.newInterest.pool_source_month) {
+      this.snackBar.open('Please fill in amount and pool source month', 'Close', { duration: 3000 });
+      return;
+    }
+
+    this.interestLoading.set(true);
+    this.api.addInterestEntry({
+      earned_month: this.newInterest.earned_month,
+      source: this.newInterest.source,
+      source_description: this.newInterest.source_description,
+      pool_source_month: this.newInterest.pool_source_month,
+      amount: this.newInterest.amount,
+      loan_id: this.newInterest.loan_id || undefined
+    }).subscribe({
+      next: (result) => {
+        this.snackBar.open(result.message, 'Close', { duration: 5000 });
+        this.newInterest = {
+          earned_month: this.newInterest.earned_month,
+          source: 'bank_interest',
+          source_description: '',
+          pool_source_month: this.newInterest.pool_source_month,
+          amount: 0,
+          loan_id: ''
+        };
+        this.loadInterestData();
+        this.interestLoading.set(false);
+      },
+      error: (err) => {
+        this.snackBar.open(err.error?.error || 'Failed to add interest', 'Close', { duration: 5000 });
+        this.interestLoading.set(false);
+      }
+    });
+  }
+
+  getSnapshotMemberCount(snapshot: PoolSnapshot): number {
+    return Object.keys(snapshot.member_snapshots || {}).length;
+  }
+
+  getTotalInterestEarned(): number {
+    return this.memberInterestSummary().reduce((sum, m) => sum + m.total_interest_earned, 0);
   }
 }

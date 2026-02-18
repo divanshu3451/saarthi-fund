@@ -362,7 +362,7 @@
                       <th mat-header-cell *matHeaderCellDef>Date</th>
                       <td mat-cell *matCellDef="let row; let i = index">
                         <mat-form-field appearance="outline" class="table-input-date">
-                          <input matInput type="date" [(ngModel)]="bulkDeposits()[i].deposit_date" />
+                          <input matInput type="date" [(ngModel)]="bulkDeposits()[i].deposit_date" (blur)="sortBulkRows()" />
                         </mat-form-field>
                       </td>
                     </ng-container>
@@ -418,6 +418,295 @@
               }
             </mat-card-content>
           </mat-card>
+        </div>
+      </ng-template>
+    </mat-tab>
+    
+    <mat-tab label="Interest Distribution">
+      <ng-template matTabContent>
+        <div style="padding: 24px 0;">
+          <!-- Emergency Fund Summary -->
+          <div class="interest-summary-cards">
+            <mat-card class="summary-card">
+              <mat-card-content>
+                <mat-icon>savings</mat-icon>
+                <div class="summary-value">{{ emergencyFund()?.balance | currency:'INR' }}</div>
+                <div class="summary-label">Emergency Fund Balance</div>
+              </mat-card-content>
+            </mat-card>
+            
+            <mat-card class="summary-card">
+              <mat-card-content>
+                <mat-icon>trending_up</mat-icon>
+                <div class="summary-value">{{ getTotalInterestEarned() | currency:'INR' }}</div>
+                <div class="summary-label">Total Interest Distributed</div>
+              </mat-card-content>
+            </mat-card>
+            
+            <mat-card class="summary-card">
+              <mat-card-content>
+                <mat-icon>camera</mat-icon>
+                <div class="summary-value">{{ poolSnapshots().length }}</div>
+                <div class="summary-label">Pool Snapshots</div>
+              </mat-card-content>
+            </mat-card>
+            
+            <mat-card class="summary-card">
+              <mat-card-content>
+                <mat-icon>receipt</mat-icon>
+                <div class="summary-value">{{ interestEntries().length }}</div>
+                <div class="summary-label">Interest Entries</div>
+              </mat-card-content>
+            </mat-card>
+          </div>
+          
+          <!-- Pool Snapshots -->
+          <mat-expansion-panel class="interest-panel">
+            <mat-expansion-panel-header>
+              <mat-panel-title>
+                <mat-icon>camera</mat-icon>
+                Pool Snapshots
+              </mat-panel-title>
+              <mat-panel-description>
+                Freeze pool composition each month
+              </mat-panel-description>
+            </mat-expansion-panel-header>
+            
+            <div class="panel-content">
+              <div class="snapshot-form">
+                <mat-form-field appearance="outline">
+                  <mat-label>Fund Month #</mat-label>
+                  <input matInput type="number" [(ngModel)]="newSnapshot.fund_month" min="1" />
+                  <mat-icon matPrefix>tag</mat-icon>
+                </mat-form-field>
+                
+                <mat-form-field appearance="outline">
+                  <mat-label>Month/Year (YYYY-MM)</mat-label>
+                  <input matInput [(ngModel)]="newSnapshot.month_year" placeholder="2023-07" />
+                  <mat-icon matPrefix>calendar_month</mat-icon>
+                </mat-form-field>
+                
+                <button mat-raised-button color="primary" (click)="createSnapshot()" [disabled]="interestLoading()">
+                  @if (interestLoading()) {
+                    <mat-spinner diameter="20"></mat-spinner>
+                  } @else {
+                    <mat-icon>add_a_photo</mat-icon>
+                    Create Snapshot
+                  }
+                </button>
+              </div>
+              
+              @if (poolSnapshots().length > 0) {
+                <table mat-table [dataSource]="poolSnapshots()" class="snapshot-table">
+                  <ng-container matColumnDef="fund_month">
+                    <th mat-header-cell *matHeaderCellDef>Month #</th>
+                    <td mat-cell *matCellDef="let s">{{ s.fund_month }}</td>
+                  </ng-container>
+                  
+                  <ng-container matColumnDef="month_year">
+                    <th mat-header-cell *matHeaderCellDef>Period</th>
+                    <td mat-cell *matCellDef="let s">{{ s.month_year }}</td>
+                  </ng-container>
+                  
+                  <ng-container matColumnDef="total_pool_amount">
+                    <th mat-header-cell *matHeaderCellDef>Pool Amount</th>
+                    <td mat-cell *matCellDef="let s">{{ s.total_pool_amount | currency:'INR' }}</td>
+                  </ng-container>
+                  
+                  <ng-container matColumnDef="total_pool_units">
+                    <th mat-header-cell *matHeaderCellDef>Units</th>
+                    <td mat-cell *matCellDef="let s">{{ s.cumulative_pool_units }}</td>
+                  </ng-container>
+                  
+                  <ng-container matColumnDef="actions">
+                    <th mat-header-cell *matHeaderCellDef>Members</th>
+                    <td mat-cell *matCellDef="let s">{{ getSnapshotMemberCount(s) }}</td>
+                  </ng-container>
+                  
+                  <tr mat-header-row *matHeaderRowDef="snapshotColumns"></tr>
+                  <tr mat-row *matRowDef="let row; columns: snapshotColumns;"></tr>
+                </table>
+              } @else {
+                <div class="empty-state small">
+                  <mat-icon>camera</mat-icon>
+                  <p>No snapshots yet. Create one to start tracking interest.</p>
+                </div>
+              }
+            </div>
+          </mat-expansion-panel>
+          
+          <!-- Add Interest -->
+          <mat-expansion-panel class="interest-panel">
+            <mat-expansion-panel-header>
+              <mat-panel-title>
+                <mat-icon>add_circle</mat-icon>
+                Add Interest Entry
+              </mat-panel-title>
+              <mat-panel-description>
+                Record loan or bank interest
+              </mat-panel-description>
+            </mat-expansion-panel-header>
+            
+            <div class="panel-content">
+              <div class="interest-form">
+                <mat-form-field appearance="outline">
+                  <mat-label>Earned in Month #</mat-label>
+                  <input matInput type="number" [(ngModel)]="newInterest.earned_month" min="1" />
+                  <mat-icon matPrefix>event</mat-icon>
+                  <mat-hint>Month when interest was received</mat-hint>
+                </mat-form-field>
+                
+                <mat-form-field appearance="outline">
+                  <mat-label>Source</mat-label>
+                  <mat-select [(ngModel)]="newInterest.source">
+                    <mat-option value="bank_interest">Bank Interest</mat-option>
+                    <mat-option value="loan_interest">Loan Interest</mat-option>
+                    <mat-option value="other">Other</mat-option>
+                  </mat-select>
+                  <mat-icon matPrefix>category</mat-icon>
+                </mat-form-field>
+                
+                <mat-form-field appearance="outline">
+                  <mat-label>Description</mat-label>
+                  <input matInput [(ngModel)]="newInterest.source_description" placeholder="e.g., FD 5000rs, Loan for 45 days" />
+                  <mat-icon matPrefix>description</mat-icon>
+                </mat-form-field>
+                
+                <mat-form-field appearance="outline">
+                  <mat-label>Pool Source Month #</mat-label>
+                  <input matInput type="number" [(ngModel)]="newInterest.pool_source_month" min="1" />
+                  <mat-icon matPrefix>history</mat-icon>
+                  <mat-hint>Which month's pool funded this (for distribution)</mat-hint>
+                </mat-form-field>
+                
+                <mat-form-field appearance="outline">
+                  <mat-label>Amount (₹)</mat-label>
+                  <input matInput type="number" [(ngModel)]="newInterest.amount" min="0" step="0.01" />
+                  <mat-icon matPrefix>currency_rupee</mat-icon>
+                </mat-form-field>
+                
+                @if (newInterest.source === 'loan_interest') {
+                  <mat-form-field appearance="outline">
+                    <mat-label>Loan (optional)</mat-label>
+                    <mat-select [(ngModel)]="newInterest.loan_id">
+                      <mat-option value="">-- Select Loan --</mat-option>
+                      @for (loan of loans(); track loan.id) {
+                        <mat-option [value]="loan.id">
+                          {{ loan.users_loans_user_idTousers?.name }} - {{ loan.principal_amount | currency:'INR' }}
+                        </mat-option>
+                      }
+                    </mat-select>
+                    <mat-icon matPrefix>receipt_long</mat-icon>
+                  </mat-form-field>
+                }
+                
+                <button mat-raised-button color="primary" (click)="addInterest()" [disabled]="interestLoading()">
+                  @if (interestLoading()) {
+                    <mat-spinner diameter="20"></mat-spinner>
+                  } @else {
+                    <mat-icon>add</mat-icon>
+                    Add & Distribute Interest
+                  }
+                </button>
+              </div>
+            </div>
+          </mat-expansion-panel>
+          
+          <!-- Interest Entries -->
+          <mat-expansion-panel class="interest-panel">
+            <mat-expansion-panel-header>
+              <mat-panel-title>
+                <mat-icon>list</mat-icon>
+                Interest Entries
+              </mat-panel-title>
+              <mat-panel-description>
+                All recorded interest
+              </mat-panel-description>
+            </mat-expansion-panel-header>
+            
+            <div class="panel-content">
+              @if (interestEntries().length > 0) {
+                <table mat-table [dataSource]="interestEntries()">
+                  <ng-container matColumnDef="earned_month">
+                    <th mat-header-cell *matHeaderCellDef>Earned Month</th>
+                    <td mat-cell *matCellDef="let e">{{ e.earned_month }}</td>
+                  </ng-container>
+                  
+                  <ng-container matColumnDef="source">
+                    <th mat-header-cell *matHeaderCellDef>Source</th>
+                    <td mat-cell *matCellDef="let e">
+                      <mat-chip class="source-chip" [class]="e.source">{{ e.source }}</mat-chip>
+                    </td>
+                  </ng-container>
+                  
+                  <ng-container matColumnDef="description">
+                    <th mat-header-cell *matHeaderCellDef>Description</th>
+                    <td mat-cell *matCellDef="let e">{{ e.source_description || '-' }}</td>
+                  </ng-container>
+                  
+                  <ng-container matColumnDef="amount">
+                    <th mat-header-cell *matHeaderCellDef>Amount</th>
+                    <td mat-cell *matCellDef="let e" class="amount-cell">{{ e.amount | currency:'INR' }}</td>
+                  </ng-container>
+                  
+                  <ng-container matColumnDef="pool_source_month">
+                    <th mat-header-cell *matHeaderCellDef>Pool Month</th>
+                    <td mat-cell *matCellDef="let e">{{ e.pool_source_month }}</td>
+                  </ng-container>
+                  
+                  <tr mat-header-row *matHeaderRowDef="interestColumns"></tr>
+                  <tr mat-row *matRowDef="let row; columns: interestColumns;"></tr>
+                </table>
+              } @else {
+                <div class="empty-state small">
+                  <mat-icon>receipt</mat-icon>
+                  <p>No interest entries yet.</p>
+                </div>
+              }
+            </div>
+          </mat-expansion-panel>
+          
+          <!-- Member Interest Summary -->
+          <mat-expansion-panel class="interest-panel">
+            <mat-expansion-panel-header>
+              <mat-panel-title>
+                <mat-icon>people</mat-icon>
+                Member Interest Summary
+              </mat-panel-title>
+              <mat-panel-description>
+                Each member's total interest earned
+              </mat-panel-description>
+            </mat-expansion-panel-header>
+            
+            <div class="panel-content">
+              @if (memberInterestSummary().length > 0) {
+                <table mat-table [dataSource]="memberInterestSummary()">
+                  <ng-container matColumnDef="name">
+                    <th mat-header-cell *matHeaderCellDef>Member</th>
+                    <td mat-cell *matCellDef="let m">{{ m.name }}</td>
+                  </ng-container>
+                  
+                  <ng-container matColumnDef="total_interest_earned">
+                    <th mat-header-cell *matHeaderCellDef>Total Interest Earned</th>
+                    <td mat-cell *matCellDef="let m" class="amount-cell">{{ m.total_interest_earned | currency:'INR' }}</td>
+                  </ng-container>
+                  
+                  <ng-container matColumnDef="entries_count">
+                    <th mat-header-cell *matHeaderCellDef>Entries</th>
+                    <td mat-cell *matCellDef="let m">{{ m.entries_count }}</td>
+                  </ng-container>
+                  
+                  <tr mat-header-row *matHeaderRowDef="memberInterestColumns"></tr>
+                  <tr mat-row *matRowDef="let row; columns: memberInterestColumns;"></tr>
+                </table>
+              } @else {
+                <div class="empty-state small">
+                  <mat-icon>people</mat-icon>
+                  <p>No interest distributed yet.</p>
+                </div>
+              }
+            </div>
+          </mat-expansion-panel>
         </div>
       </ng-template>
     </mat-tab>
