@@ -33,24 +33,109 @@ Admin rejects → status = 'rejected', rejection_reason = "..."
 Admin deactivates → status = 'inactive'
 ```
 
-**Example:**
-```sql
--- Ravi registers on Jan 15, 2026
-INSERT INTO users (name, email, password_hash, status)
-VALUES ('Ravi Kumar', 'ravi@email.com', 'hashed_pwd', 'pending');
+---
 
--- Admin Amit approves on Jan 20, 2026
-UPDATE users SET 
-    status = 'active',
-    joined_at = '2026-01-20',
-    approved_by = 'amit-uuid',
-    approved_at = NOW()
-WHERE email = 'ravi@email.com';
+## 2. INTEREST DISTRIBUTION SYSTEM
+
+### Overview
+Interest earned from loans and bank deposits is distributed to members based on their contribution ratio to the pool. All interest goes to the Emergency Fund, where each member has a virtual share.
+
+### Key Tables:
+
+#### MONTHLY_POOL_SNAPSHOT
+**Purpose:** Freeze pool composition at end of each month for accurate interest distribution.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| fund_month | INT | Fund's month number (1, 2, 3...) |
+| month_year | VARCHAR | 'YYYY-MM' for reference |
+| total_pool_amount | DECIMAL | Total pool in rupees |
+| total_pool_units | INT | Total units (amount / 300) |
+| cumulative_pool_units | INT | Sum of all units up to this month |
+| member_snapshots | JSONB | { "user_id": cumulative_units } |
+| is_finalized | BOOLEAN | Lock after month ends |
+
+#### MONTHLY_INTEREST
+**Purpose:** Track all interest earned each month.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| earned_month | INT | Month when interest was received |
+| source | ENUM | 'loan_interest', 'bank_interest', 'other' |
+| source_description | TEXT | e.g., "FD 5000rs", "Loan for 45 days" |
+| loan_id | UUID | Reference to loan (if loan interest) |
+| pool_source_month | INT | Which month's pool funded the loan |
+| amount | DECIMAL | Interest amount |
+
+#### MEMBER_INTEREST_SHARES
+**Purpose:** Each member's calculated share of interest.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| user_id | UUID | Member |
+| monthly_interest_id | UUID | Which interest entry |
+| member_cumulative_units | INT | Member's units at pool_source_month |
+| total_pool_units | INT | Total pool units at pool_source_month |
+| share_percentage | DECIMAL | (member_units / total_units) × 100 |
+| interest_share | DECIMAL | Calculated share amount |
+
+#### EMERGENCY_FUND
+**Purpose:** Track total accumulated interest (100% goes here).
+
+| Field | Type | Description |
+|-------|------|-------------|
+| total_balance | DECIMAL | Running total |
+| last_interest_month | INT | Last month interest was added |
+
+#### EMERGENCY_FUND_TRANSACTIONS
+**Purpose:** Audit trail of all fund movements.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| transaction_type | ENUM | 'interest_credit', 'loan_disbursement', etc. |
+| amount | DECIMAL | Transaction amount |
+| balance_after | DECIMAL | Balance after transaction |
+
+---
+
+### Interest Distribution Formula
+
+```
+Rate Per Unit = Total Interest / Cumulative Pool Units (at source month)
+Member's Share = Rate Per Unit × Member's Cumulative Units
 ```
 
-**Edge Cases:**
-- User tries to login while `status = 'pending'` → Block login
-- Admin cannot be deleted if they approved other users (foreign key)
+### Example - Complete Flow
+
+**Month 1 (July 2023):**
+- A deposits ₹300 (1 unit), B deposits ₹600 (2 units), C deposits ₹900 (3 units)
+- Total pool = ₹1,800 (6 units)
+- Cumulative units = 6
+- Snapshot: { "A": 1, "B": 2, "C": 3 }
+
+**Month 1 Interest:**
+- Bank interest = ₹11
+- Rate = 11 / 6 = 1.83 per unit
+- A gets: 1.83 × 1 = ₹1.83
+- B gets: 1.83 × 2 = ₹3.67
+- C gets: 1.83 × 3 = ₹5.50
+
+**Month 2 (August 2023):**
+- A deposits ₹600 (2 units), B deposits ₹900 (3 units), C deposits ₹1,200 (4 units)
+- New deposits = ₹2,700 (9 units)
+- Cumulative pool = ₹4,500 (15 units)
+- Snapshot: { "A": 3, "B": 5, "C": 7 }
+
+**Month 2 - Loan Interest (from Month 1 loan):**
+- Person X took loan in Month 1 from Month 1's pool
+- Interest paid in Month 2 = ₹97
+- **Uses Month 1's snapshot** (pool_source_month = 1)
+- Rate = 97 / 6 = 16.17 per unit
+- A gets: 16.17 × 1 = ₹16.17
+- B gets: 16.17 × 2 = ₹32.33
+- C gets: 16.17 × 3 = ₹48.50
+
+**Key Point:** Even though it's Month 2, loan interest uses Month 1's pool composition because that's when the loan was taken.
 
 ---
 

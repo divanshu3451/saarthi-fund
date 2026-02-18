@@ -129,6 +129,9 @@ CREATE TABLE loans (
     total_interest_paid DECIMAL(12, 2) DEFAULT 0,
     status loan_status DEFAULT 'active',
     
+    -- Which fund month's pool this loan was taken from (for interest distribution)
+    pool_source_month INT,
+    
     completed_at TIMESTAMP,
     approved_by UUID REFERENCES users(id),
     
@@ -220,6 +223,124 @@ CREATE TABLE payments (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+
+-- =============================================
+-- MONTHLY POOL SNAPSHOT (Freeze pool composition each month)
+-- =============================================
+CREATE TABLE monthly_pool_snapshot (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    
+    -- Fund month (1, 2, 3... from fund start)
+    fund_month INT NOT NULL UNIQUE,
+    month_year VARCHAR(7) NOT NULL, -- 'YYYY-MM' format for reference
+    
+    -- Pool totals at end of this month
+    total_pool_amount DECIMAL(12, 2) NOT NULL,
+    total_pool_units INT NOT NULL, -- Total units (amount / 300)
+    cumulative_pool_units INT NOT NULL, -- Sum of all units up to this month
+    
+    -- Snapshot of each member's cumulative units (stored as JSONB)
+    -- Format: { "user_id": cumulative_units, ... }
+    member_snapshots JSONB NOT NULL,
+    
+    is_finalized BOOLEAN DEFAULT FALSE, -- Lock after month ends
+    finalized_at TIMESTAMP,
+    finalized_by UUID REFERENCES users(id),
+    
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- =============================================
+-- MONTHLY INTEREST ENTRIES (Interest earned each month)
+-- =============================================
+CREATE TYPE interest_source AS ENUM ('loan_interest', 'bank_interest', 'other');
+
+CREATE TABLE monthly_interest (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    
+    -- Which month this interest was EARNED in
+    earned_month INT NOT NULL, -- Fund month when interest was received
+    
+    -- Source of interest
+    source interest_source NOT NULL,
+    source_description TEXT, -- e.g., "FD 5000rs", "Loan for 45 days"
+    
+    -- For loan interest: which loan and which month's pool it came from
+    loan_id UUID REFERENCES loans(id),
+    pool_source_month INT, -- The fund month whose pool funded this loan
+    
+    -- Amount
+    amount DECIMAL(12, 2) NOT NULL CHECK (amount > 0),
+    
+    -- Admin who recorded this
+    recorded_by UUID REFERENCES users(id),
+    notes TEXT,
+    
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- =============================================
+-- MEMBER INTEREST SHARES (Each member's share of interest)
+-- =============================================
+CREATE TABLE member_interest_shares (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    
+    user_id UUID NOT NULL REFERENCES users(id),
+    monthly_interest_id UUID NOT NULL REFERENCES monthly_interest(id),
+    
+    -- Calculation details
+    member_cumulative_units INT NOT NULL, -- Member's units at pool_source_month
+    total_pool_units INT NOT NULL, -- Total pool units at pool_source_month
+    share_percentage DECIMAL(8, 4) NOT NULL, -- member_units / total_units * 100
+    
+    -- Calculated share
+    interest_share DECIMAL(12, 2) NOT NULL,
+    
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    
+    UNIQUE(user_id, monthly_interest_id)
+);
+
+-- =============================================
+-- EMERGENCY FUND (Pool's accumulated interest)
+-- =============================================
+CREATE TABLE emergency_fund (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    
+    -- Running balance
+    total_balance DECIMAL(12, 2) NOT NULL DEFAULT 0,
+    
+    -- Last updated
+    last_interest_month INT,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Initialize emergency fund
+INSERT INTO emergency_fund (total_balance, last_interest_month) VALUES (0, 0);
+
+-- =============================================
+-- EMERGENCY FUND TRANSACTIONS (Track all movements)
+-- =============================================
+CREATE TYPE ef_transaction_type AS ENUM ('interest_credit', 'loan_disbursement', 'loan_repayment', 'adjustment');
+
+CREATE TABLE emergency_fund_transactions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    
+    transaction_type ef_transaction_type NOT NULL,
+    amount DECIMAL(12, 2) NOT NULL, -- Positive for credit, negative for debit
+    
+    -- Reference to source
+    monthly_interest_id UUID REFERENCES monthly_interest(id),
+    loan_id UUID REFERENCES loans(id),
+    
+    -- Balance after this transaction
+    balance_after DECIMAL(12, 2) NOT NULL,
+    
+    description TEXT,
+    recorded_by UUID REFERENCES users(id),
+    
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 
 -- =============================================
 -- VIEWS
@@ -321,6 +442,40 @@ JOIN users u ON l.user_id = u.id
 WHERE es.is_paid = FALSE AND l.status = 'active'
 ORDER BY due_date;
 
+-- Member's total interest earned
+CREATE VIEW v_member_interest_summary AS
+SELECT 
+    u.id AS user_id,
+    u.name,
+    COALESCE(SUM(mis.interest_share), 0) AS total_interest_earned,
+    COUNT(DISTINCT mis.monthly_interest_id) AS interest_entries
+FROM users u
+LEFT JOIN member_interest_shares mis ON u.id = mis.user_id
+WHERE u.role = 'member'
+GROUP BY u.id, u.name;
+
+-- Monthly interest breakdown
+CREATE VIEW v_monthly_interest_summary AS
+SELECT 
+    mi.earned_month,
+    mi.source,
+    SUM(mi.amount) AS total_interest,
+    COUNT(*) AS entry_count
+FROM monthly_interest mi
+GROUP BY mi.earned_month, mi.source
+ORDER BY mi.earned_month DESC, mi.source;
+
+-- Emergency fund status
+CREATE VIEW v_emergency_fund_status AS
+SELECT 
+    ef.total_balance,
+    ef.last_interest_month,
+    ef.updated_at,
+    (SELECT COALESCE(SUM(amount), 0) FROM monthly_interest) AS total_interest_earned,
+    (SELECT COUNT(*) FROM emergency_fund_transactions WHERE transaction_type = 'loan_disbursement') AS emergency_loans_given
+FROM emergency_fund ef
+LIMIT 1;
+
 -- =============================================
 -- INDEXES
 -- =============================================
@@ -336,6 +491,13 @@ CREATE INDEX idx_emi_schedule_loan_id ON emi_schedule(loan_id);
 CREATE INDEX idx_emi_schedule_due_date ON emi_schedule(due_date);
 CREATE INDEX idx_payments_loan_id ON payments(loan_id);
 CREATE INDEX idx_payments_user_id ON payments(user_id);
+CREATE INDEX idx_monthly_pool_snapshot_fund_month ON monthly_pool_snapshot(fund_month);
+CREATE INDEX idx_monthly_interest_earned_month ON monthly_interest(earned_month);
+CREATE INDEX idx_monthly_interest_loan_id ON monthly_interest(loan_id);
+CREATE INDEX idx_monthly_interest_pool_source ON monthly_interest(pool_source_month);
+CREATE INDEX idx_member_interest_shares_user_id ON member_interest_shares(user_id);
+CREATE INDEX idx_member_interest_shares_interest_id ON member_interest_shares(monthly_interest_id);
+CREATE INDEX idx_ef_transactions_type ON emergency_fund_transactions(transaction_type);
 
 -- =============================================
 -- FUNCTIONS & TRIGGERS
@@ -533,3 +695,163 @@ CREATE TRIGGER trg_check_loan_completion
     AFTER INSERT ON payments
     FOR EACH ROW
     EXECUTE FUNCTION check_loan_completion();
+
+-- =============================================
+-- INTEREST DISTRIBUTION FUNCTIONS
+-- =============================================
+
+-- Function: Create monthly pool snapshot
+CREATE OR REPLACE FUNCTION create_monthly_snapshot(
+    p_fund_month INT,
+    p_month_year VARCHAR(7),
+    p_admin_id UUID
+)
+RETURNS UUID AS $
+DECLARE
+    v_snapshot_id UUID;
+    v_total_amount DECIMAL;
+    v_total_units INT;
+    v_cumulative_units INT;
+    v_member_data JSONB;
+BEGIN
+    -- Check if snapshot already exists
+    IF EXISTS (SELECT 1 FROM monthly_pool_snapshot WHERE fund_month = p_fund_month) THEN
+        RAISE EXCEPTION 'Snapshot for month % already exists', p_fund_month;
+    END IF;
+    
+    -- Calculate total pool
+    SELECT COALESCE(SUM(amount), 0) INTO v_total_amount FROM deposits;
+    v_total_units := (v_total_amount / 300)::INT;
+    
+    -- Calculate cumulative units (sum of all months' units)
+    -- For simplicity, cumulative = total units at this point
+    v_cumulative_units := v_total_units;
+    
+    -- Build member snapshots
+    SELECT COALESCE(jsonb_object_agg(user_id::TEXT, cumulative_units), '{}'::JSONB)
+    INTO v_member_data
+    FROM (
+        SELECT user_id, (SUM(amount) / 300)::INT AS cumulative_units
+        FROM deposits
+        GROUP BY user_id
+    ) sub;
+    
+    -- Insert snapshot
+    INSERT INTO monthly_pool_snapshot (
+        fund_month, month_year, total_pool_amount, total_pool_units,
+        cumulative_pool_units, member_snapshots, is_finalized, finalized_at, finalized_by
+    ) VALUES (
+        p_fund_month, p_month_year, v_total_amount, v_total_units,
+        v_cumulative_units, v_member_data, TRUE, CURRENT_TIMESTAMP, p_admin_id
+    ) RETURNING id INTO v_snapshot_id;
+    
+    RETURN v_snapshot_id;
+END;
+$ LANGUAGE plpgsql;
+
+-- Function: Distribute interest to members
+CREATE OR REPLACE FUNCTION distribute_interest(
+    p_monthly_interest_id UUID
+)
+RETURNS INT AS $
+DECLARE
+    v_interest RECORD;
+    v_snapshot RECORD;
+    v_member RECORD;
+    v_share_count INT := 0;
+    v_rate_per_unit DECIMAL;
+BEGIN
+    -- Get interest entry
+    SELECT * INTO v_interest FROM monthly_interest WHERE id = p_monthly_interest_id;
+    
+    IF v_interest IS NULL THEN
+        RAISE EXCEPTION 'Interest entry not found';
+    END IF;
+    
+    -- Get the pool snapshot for the source month
+    SELECT * INTO v_snapshot 
+    FROM monthly_pool_snapshot 
+    WHERE fund_month = COALESCE(v_interest.pool_source_month, v_interest.earned_month);
+    
+    IF v_snapshot IS NULL THEN
+        RAISE EXCEPTION 'Pool snapshot not found for month %', 
+            COALESCE(v_interest.pool_source_month, v_interest.earned_month);
+    END IF;
+    
+    -- Calculate rate per unit
+    IF v_snapshot.cumulative_pool_units = 0 THEN
+        RAISE EXCEPTION 'Pool has zero units';
+    END IF;
+    
+    v_rate_per_unit := v_interest.amount / v_snapshot.cumulative_pool_units;
+    
+    -- Distribute to each member based on their snapshot
+    FOR v_member IN 
+        SELECT key::UUID AS user_id, value::INT AS units
+        FROM jsonb_each_text(v_snapshot.member_snapshots)
+    LOOP
+        INSERT INTO member_interest_shares (
+            user_id, monthly_interest_id, member_cumulative_units,
+            total_pool_units, share_percentage, interest_share
+        ) VALUES (
+            v_member.user_id,
+            p_monthly_interest_id,
+            v_member.units,
+            v_snapshot.cumulative_pool_units,
+            (v_member.units::DECIMAL / v_snapshot.cumulative_pool_units) * 100,
+            v_rate_per_unit * v_member.units
+        );
+        v_share_count := v_share_count + 1;
+    END LOOP;
+    
+    -- Update emergency fund
+    UPDATE emergency_fund 
+    SET total_balance = total_balance + v_interest.amount,
+        last_interest_month = GREATEST(last_interest_month, v_interest.earned_month),
+        updated_at = CURRENT_TIMESTAMP;
+    
+    -- Record transaction
+    INSERT INTO emergency_fund_transactions (
+        transaction_type, amount, monthly_interest_id, balance_after, description
+    ) VALUES (
+        'interest_credit',
+        v_interest.amount,
+        p_monthly_interest_id,
+        (SELECT total_balance FROM emergency_fund),
+        v_interest.source_description
+    );
+    
+    RETURN v_share_count;
+END;
+$ LANGUAGE plpgsql;
+
+-- Function: Add interest and distribute in one call
+CREATE OR REPLACE FUNCTION add_and_distribute_interest(
+    p_earned_month INT,
+    p_source interest_source,
+    p_amount DECIMAL,
+    p_description TEXT,
+    p_loan_id UUID DEFAULT NULL,
+    p_pool_source_month INT DEFAULT NULL,
+    p_admin_id UUID DEFAULT NULL
+)
+RETURNS TABLE(interest_id UUID, members_distributed INT) AS $
+DECLARE
+    v_interest_id UUID;
+    v_count INT;
+BEGIN
+    -- Insert interest entry
+    INSERT INTO monthly_interest (
+        earned_month, source, source_description, loan_id, 
+        pool_source_month, amount, recorded_by
+    ) VALUES (
+        p_earned_month, p_source, p_description, p_loan_id,
+        COALESCE(p_pool_source_month, p_earned_month), p_amount, p_admin_id
+    ) RETURNING id INTO v_interest_id;
+    
+    -- Distribute to members
+    SELECT distribute_interest(v_interest_id) INTO v_count;
+    
+    RETURN QUERY SELECT v_interest_id, v_count;
+END;
+$ LANGUAGE plpgsql;

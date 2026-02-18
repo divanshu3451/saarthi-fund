@@ -93,6 +93,55 @@ export interface FundSetting {
   description: string;
 }
 
+export interface PoolSnapshot {
+  id: string;
+  fund_month: number;
+  month_year: string;
+  total_pool_amount: number;
+  total_pool_units: number;
+  cumulative_pool_units: number;
+  member_snapshots: Record<string, number>;
+  is_finalized: boolean;
+}
+
+export interface MonthlyInterest {
+  id: string;
+  earned_month: number;
+  source: 'loan_interest' | 'bank_interest' | 'other';
+  source_description: string;
+  loan_id: string | null;
+  pool_source_month: number;
+  amount: number;
+  member_interest_shares?: MemberInterestShare[];
+}
+
+export interface MemberInterestShare {
+  id: string;
+  user_id: string;
+  monthly_interest_id: string;
+  member_cumulative_units: number;
+  total_pool_units: number;
+  share_percentage: number;
+  interest_share: number;
+  users?: { name: string };
+  monthly_interest?: { earned_month: number; source: string; source_description: string; amount: number };
+}
+
+export interface EmergencyFund {
+  balance: number;
+  last_interest_month: number;
+  recent_transactions: EmergencyFundTransaction[];
+}
+
+export interface EmergencyFundTransaction {
+  id: string;
+  transaction_type: string;
+  amount: number;
+  balance_after: number;
+  description: string;
+  created_at: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class ApiService {
   private readonly apiUrl = environment.apiUrl;
@@ -189,5 +238,42 @@ export class ApiService {
 
   bulkImportDeposits(userId: string, deposits: { amount: number; member_month: number; deposit_date: string; notes?: string }[]) {
     return this.http.post<{ message: string; count: number }>(`${this.apiUrl}/admin/bulk-deposits`, { user_id: userId, deposits });
+  }
+
+  // Interest Distribution
+  getPoolSnapshots() {
+    return this.http.get<PoolSnapshot[]>(`${this.apiUrl}/interest/snapshots`);
+  }
+
+  createPoolSnapshot(fund_month: number, month_year: string) {
+    return this.http.post<PoolSnapshot>(`${this.apiUrl}/interest/snapshots`, { fund_month, month_year });
+  }
+
+  getInterestEntries() {
+    return this.http.get<MonthlyInterest[]>(`${this.apiUrl}/interest/entries`);
+  }
+
+  addInterestEntry(data: {
+    earned_month: number;
+    source: 'loan_interest' | 'bank_interest' | 'other';
+    source_description: string;
+    loan_id?: string;
+    pool_source_month: number;
+    amount: number;
+    notes?: string;
+  }) {
+    return this.http.post<{ message: string; entry: MonthlyInterest }>(`${this.apiUrl}/interest/entries`, data);
+  }
+
+  getMyInterestShares() {
+    return this.http.get<{ shares: MemberInterestShare[]; total_interest_earned: number }>(`${this.apiUrl}/interest/my-shares`);
+  }
+
+  getEmergencyFund() {
+    return this.http.get<EmergencyFund>(`${this.apiUrl}/interest/emergency-fund`);
+  }
+
+  getMemberInterestSummary() {
+    return this.http.get<{ id: string; name: string; total_interest_earned: number; entries_count: number }[]>(`${this.apiUrl}/interest/member-summary`);
   }
 }
